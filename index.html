@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zone Diet Meal Builder</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Meal Builder</h1>
+    
+    <div class="form-group">
+        <label for="blocks">How many blocks is this meal?</label>
+        <input type="number" id="blocks" value="3" min="1" max="10">
+    </div>
+
+    <div class="form-group">
+        <label for="protein">Select Protein (1 Block = 7g)</label>
+        <select id="protein"></select>
+    </div>
+
+    <div class="form-group">
+        <label for="carb">Select Carb (1 Block = 9g)</label>
+        <select id="carb"></select>
+    </div>
+
+    <div class="form-group">
+        <label for="fat">Select Fat (1 Block = 1.5g)</label>
+        <select id="fat"></select>
+    </div>
+
+    <button onclick="calculateMeal()">Calculate Meal</button>
+
+    <div class="result" id="result-box" style="display:none;">
+        <h3>Your Meal Plan:</h3>
+        <p id="meal-output"></p>
+    </div>
+</div>
+
+<script>
+    // 1. Food Database (Master Repository Simulation)
+    // "perBlock" is the amount of that food needed to fulfill 1 Zone Block.
+    const foodDB = {
+        protein: [
+            { name: "Chicken Breast", unit: "oz", perBlock: 1 },
+            { name: "Whole Egg", unit: "large", perBlock: 1 },
+            { name: "Cottage Cheese", unit: "cup", perBlock: 0.25 }
+        ],
+        carb: [
+            { name: "Apple", unit: "medium", perBlock: 0.5 },
+            { name: "Broccoli", unit: "cups", perBlock: 1.25 },
+            { name: "Oatmeal (cooked)", unit: "cup", perBlock: 0.33 }
+        ],
+        fat: [
+            { name: "Almonds", unit: "nuts", perBlock: 3 },
+            { name: "Olive Oil", unit: "tsp", perBlock: 0.33 },
+            { name: "Avocado", unit: "tbsp", perBlock: 1 }
+        ]
+    };
+
+    // 2. Populate Dropdowns
+    function populateSelect(categoryId, dataArray) {
+        const selectElement = document.getElementById(categoryId);
+        dataArray.forEach((food, index) => {
+            const option = document.createElement("option");
+            option.value = index; 
+            option.text = food.name;
+            selectElement.appendChild(option);
+        });
+    }
+
+    populateSelect("protein", foodDB.protein);
+    populateSelect("carb", foodDB.carb);
+    populateSelect("fat", foodDB.fat);
+
+    // 3. Calculation Logic
+    function calculateMeal() {
+        const blocks = parseFloat(document.getElementById("blocks").value);
+        
+        const pIndex = document.getElementById("protein").value;
+        const cIndex = document.getElementById("carb").value;
+        const fIndex = document.getElementById("fat").value;
+
+        const selectedProtein = foodDB.protein[pIndex];
+        const selectedCarb = foodDB.carb[cIndex];
+        const selectedFat = foodDB.fat[fIndex];
+
+        const pAmount = (selectedProtein.perBlock * blocks).toFixed(2);
+        const cAmount = (selectedCarb.perBlock * blocks).toFixed(2);
+        const fAmount = (selectedFat.perBlock * blocks).toFixed(2);
+
+        const resultText = `
+            <strong>Protein:</strong> ${pAmount} ${selectedProtein.unit} of ${selectedProtein.name} <br>
+            <strong>Carb:</strong> ${cAmount} ${selectedCarb.unit} of ${selectedCarb.name} <br>
+            <strong>Fat:</strong> ${fAmount} ${selectedFat.unit} of ${selectedFat.name}
+        `;
+
+        document.getElementById("meal-output").innerHTML = resultText;
+        document.getElementById("result-box").style.display = "block";
+    }
+</script>
+
+</body>
+</html>
