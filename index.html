@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zone Diet Meal Builder</title>
+    <title>Zone Diet Meal Tracker</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #333; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[type="number"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea { 
+            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
+        }
         button { width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
         button:hover { background-color: #218838; }
         .secondary-btn { background-color: #007bff; }
@@ -32,6 +35,15 @@
 
         .section-divider { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
         textarea { min-height: 150px; resize: vertical; }
+
+        #daily-summary-content { margin-top: 15px; background-color: #f8f9fa; padding: 15px; border-radius: 5px; }
+        .meal-entry { border: 1px solid #e9ecef; padding: 10px; margin-bottom: 8px; border-radius: 4px; background-color: #fff; }
+        .meal-entry strong { color: #0056b3; }
+        .blocks-summary { font-size: 1.1em; font-weight: bold; margin-top: 10px; }
+        .blocks-summary.over { color: red; }
+        .blocks-summary.under { color: orange; }
+        .blocks-summary.on-target { color: green; }
+
     </style>
 </head>
 <body>
@@ -60,21 +72,56 @@
         <button id="logout-btn" class="logout-btn">Log Out</button>
         <hr>
         
-        <!-- MEAL CALCULATOR -->
-        <h2>Meal Calculator</h2>
-        <div class="form-group">
-            <label>How many blocks is this meal?</label>
-            <input type="number" id="blocks" value="3" min="1" max="10">
+        <!-- USER SETTINGS -->
+        <div class="section-divider">
+            <h2>Your Settings</h2>
+            <div class="form-group">
+                <label for="daily-block-goal">Daily Block Goal</label>
+                <input type="number" id="daily-block-goal" value="11" min="1" max="30">
+            </div>
+            <button id="save-settings-btn" class="secondary-btn">Save Settings</button>
         </div>
-        <div class="form-group"><label>Protein</label><select id="protein"></select></div>
-        <div class="form-group"><label>Carb</label><select id="carb"></select></div>
-        <div class="form-group"><label>Fat</label><select id="fat"></select></div>
-        
-        <button id="calculate-btn">Calculate Meal</button>
-        
-        <div class="result" id="result-box" style="display:none;">
-            <h3>Your Meal Plan:</h3>
-            <p id="meal-output"></p>
+
+        <!-- DAILY SUMMARY -->
+        <div class="section-divider">
+            <h2>Today's Summary (<span id="current-date"></span>)</h2>
+            <div id="daily-summary-content">
+                <p>Loading summary...</p>
+            </div>
+        </div>
+
+        <!-- MEAL LOGGER -->
+        <div class="section-divider">
+            <h2>Log a Meal</h2>
+            <div class="form-group">
+                <label for="meal-date">Date</label>
+                <input type="date" id="meal-date">
+            </div>
+            <div class="form-group">
+                <label for="meal-type">Meal Type</label>
+                <select id="meal-type">
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Snack">Snack</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>How many blocks is this meal?</label>
+                <input type="number" id="blocks" value="3" min="1" max="10">
+            </div>
+            <div class="form-group"><label>Protein</label><select id="protein"></select></div>
+            <div class="form-group"><label>Carb</label><select id="carb"></select></div>
+            <div class="form-group"><label>Fat</label><select id="fat"></select></div>
+            
+            <button id="calculate-meal-btn">Calculate Meal</button>
+            
+            <div class="result" id="meal-calculation-result" style="display:none;">
+                <h3>Calculated Meal:</h3>
+                <p id="meal-output"></p>
+                <button id="log-meal-btn" class="secondary-btn">Log This Meal</button>
+            </div>
         </div>
 
         <!-- ADD NEW FOOD SECTION -->
@@ -123,7 +170,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    // ADDED getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp FOR MEAL LOGGING AND USER PROFILES
+    import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
     // YOUR EMBEDDED FIREBASE CONFIG
     const firebaseConfig = {
@@ -140,6 +188,12 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // Global variables for current user and food data
+    let currentUser = null;
+    let currentUserProfile = null;
+    let foodDB = { protein: [], carb: [], fat: [] };
+    let calculatedMeal = null; // To store the meal calculated before logging it
+
     // DOM Elements
     const loginSection = document.getElementById('login-section');
     const appSection = document.getElementById('app-section');
@@ -147,26 +201,50 @@
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const authError = document.getElementById('auth-error');
+    const dailyBlockGoalInput = document.getElementById('daily-block-goal');
+    const mealDateInput = document.getElementById('meal-date');
+    const dailySummaryContent = document.getElementById('daily-summary-content');
     
     // Status message element
     const statusMessage = document.createElement('p'); 
     statusMessage.classList.add('status-message');
     document.querySelector('.container').appendChild(statusMessage);
 
-    function updateStatus(message, type = 'info') { // type can be 'info', 'success', 'warning', 'error'
+    function updateStatus(message, type = 'info') { 
         statusMessage.textContent = message;
         statusMessage.className = 'status-message ' + type;
     }
 
-    // Auth State Listener
-    onAuthStateChanged(auth, (user) => {
+    // Helper to format date for Firestore querying
+    function getTodayDateString() {
+        const today = new Date();
+        return today.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+
+    // Set default date for meal logger
+    mealDateInput.value = getTodayDateString();
+    document.getElementById('current-date').textContent = getTodayDateString();
+
+    // --- AUTHENTICATION & USER PROFILE LOGIC ---
+    onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
         if (user) {
             loginSection.style.display = 'none';
             appSection.style.display = 'block';
-            headerTitle.innerText = "Meal Builder";
+            headerTitle.innerText = "Meal Tracker";
             document.getElementById('user-email').innerText = user.email;
-            updateStatus("Logged in successfully. Loading foods...", 'info');
-            loadFoods(); // Load foods from database when logged in
+            updateStatus("Logged in successfully. Loading data...", 'info');
+            
+            // Load or create user profile
+            await loadUserProfile(user.uid);
+            
+            // Load foods and daily logs concurrently
+            await Promise.all([
+                loadFoods(),
+                loadDailyMeals(user.uid, getTodayDateString())
+            ]);
+            updateStatus("All data loaded. Ready!", 'success');
+
         } else {
             loginSection.style.display = 'block';
             appSection.style.display = 'none';
@@ -175,34 +253,85 @@
         }
     });
 
-    // Auth functions
-    document.getElementById('signup-btn').addEventListener('click', () => {
-        createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-            .then(() => updateStatus("Signed up and logged in!", 'success'))
-            .catch(error => {
-                authError.innerText = error.message;
-                updateStatus(`Signup error: ${error.message}`, 'error');
+    async function loadUserProfile(uid) {
+        const userDocRef = doc(db, "users", uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            currentUserProfile = userDocSnap.data();
+            dailyBlockGoalInput.value = currentUserProfile.dailyBlockGoal || 11; // Default if not set
+            updateStatus("User profile loaded.", 'info');
+        } else {
+            // Create a default profile for new users
+            currentUserProfile = {
+                email: currentUser.email,
+                dailyBlockGoal: 11, // Default goal
+                createdAt: serverTimestamp()
+            };
+            await setDoc(userDocRef, currentUserProfile);
+            dailyBlockGoalInput.value = 11;
+            updateStatus("New user profile created with default settings.", 'info');
+        }
+    }
+
+    document.getElementById('signup-btn').addEventListener('click', async () => {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+            // Create user profile immediately after signup
+            await setDoc(doc(db, "users", userCredential.user.uid), {
+                email: userCredential.user.email,
+                dailyBlockGoal: 11,
+                createdAt: serverTimestamp()
             });
+            updateStatus("Signed up and logged in!", 'success');
+        } catch (error) {
+            authError.innerText = error.message;
+            updateStatus(`Signup error: ${error.message}`, 'error');
+        }
     });
 
-    document.getElementById('login-btn').addEventListener('click', () => {
-        signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-            .then(() => updateStatus("Logged in!", 'success'))
-            .catch(error => {
-                authError.innerText = error.message;
-                updateStatus(`Login error: ${error.message}`, 'error');
-            });
+    document.getElementById('login-btn').addEventListener('click', async () => {
+        try {
+            await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+            updateStatus("Logged in!", 'success');
+        } catch (error) {
+            authError.innerText = error.message;
+            updateStatus(`Login error: ${error.message}`, 'error');
+        }
     });
 
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        signOut(auth)
-            .then(() => updateStatus("Logged out.", 'info'))
-            .catch(error => updateStatus(`Logout error: ${error.message}`, 'error'));
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+            await signOut(auth);
+            updateStatus("Logged out.", 'info');
+            currentUserProfile = null; // Clear profile on logout
+        } catch (error) {
+            updateStatus(`Logout error: ${error.message}`, 'error');
+        }
     });
 
-    // --- DATABASE LOGIC ---
-    let foodDB = { protein: [], carb: [], fat: [] };
+    document.getElementById('save-settings-btn').addEventListener('click', async () => {
+        if (!currentUser) {
+            updateStatus("Please log in to save settings.", 'warning');
+            return;
+        }
+        const newGoal = parseInt(dailyBlockGoalInput.value);
+        if (isNaN(newGoal) || newGoal <= 0) {
+            updateStatus("Please enter a valid positive number for your daily block goal.", 'warning');
+            return;
+        }
+        try {
+            await updateDoc(doc(db, "users", currentUser.uid), { dailyBlockGoal: newGoal });
+            currentUserProfile.dailyBlockGoal = newGoal; // Update local state
+            updateStatus("Daily block goal updated successfully!", 'success');
+            loadDailyMeals(currentUser.uid, mealDateInput.value); // Recalculate summary if goal changed
+        } catch (error) {
+            updateStatus(`Error saving settings: ${error.message}`, 'error');
+        }
+    });
 
+
+    // --- FOOD DATABASE LOGIC ---
     async function loadFoods() {
         try {
             updateStatus("Attempting to load foods from Firestore...", 'info');
@@ -210,7 +339,6 @@
             
             if (querySnapshot.empty) {
                 updateStatus("Firebase query returned an EMPTY result for 'foods' collection. No documents found.", 'warning');
-                // Ensure dropdowns are cleared/disabled if no foods are found
                 document.getElementById("protein").innerHTML = "";
                 document.getElementById("carb").innerHTML = "";
                 document.getElementById("fat").innerHTML = "";
@@ -224,14 +352,12 @@
             
             foodDB = { protein: [], carb: [] , fat: [] }; // Reset arrays
             
-            // Clear old dropdowns
             document.getElementById("protein").innerHTML = "";
             document.getElementById("carb").innerHTML = "";
             document.getElementById("fat").innerHTML = "";
 
             querySnapshot.forEach((doc) => {
                 const food = doc.data();
-                // Add an explicit check for the food data structure here
                 if (!food.name || !food.category || typeof food.perBlock !== 'number' || !food.unit) {
                     updateStatus(`Warning: Skipping malformed food document (ID: ${doc.id}). Missing fields or incorrect 'perBlock' type (expected number).`, 'warning');
                     return; 
@@ -253,7 +379,7 @@
             } else if (foodDB.protein.length === 0 || foodDB.carb.length === 0 || foodDB.fat.length === 0) {
                  updateStatus(`Warning: Some food categories are empty. Protein: ${foodDB.protein.length}, Carb: ${foodDB.carb.length}, Fat: ${foodDB.fat.length}.`, 'warning');
             } else {
-                updateStatus("Foods loaded, categorized, and dropdowns populated. Ready to calculate!", 'success');
+                updateStatus("Foods loaded, categorized, and dropdowns populated.", 'success');
             }
 
         } catch (error) {
@@ -265,26 +391,29 @@
         const select = document.getElementById(categoryId);
         if (dataArray.length === 0) {
             select.add(new Option(`No ${categoryId}s available`, ''));
-            select.disabled = true; // Disable if empty
+            select.disabled = true; 
             return;
         }
         select.disabled = false;
-        // Sort alphabetically
         dataArray.sort((a, b) => a.name.localeCompare(b.name));
-        select.innerHTML = '<option value="">-- Select --</option>'; // Add a default "Select" option
+        select.innerHTML = '<option value="">-- Select --</option>'; 
         dataArray.forEach((food, index) => {
-            select.add(new Option(food.name, index));
+            // Store original index in dataArray, not just its name for lookup
+            select.add(new Option(food.name, foodDB[categoryId].indexOf(food))); 
         });
     }
 
-    document.getElementById('calculate-btn').addEventListener('click', () => {
-        const blocks = parseFloat(document.getElementById("blocks").value);
+    // --- MEAL CALCULATION AND LOGGING LOGIC ---
+    document.getElementById('calculate-meal-btn').addEventListener('click', () => {
+        const blocksCount = parseFloat(document.getElementById("blocks").value);
         const pIndex = document.getElementById("protein").value;
         const cIndex = document.getElementById("carb").value;
         const fIndex = document.getElementById("fat").value;
 
         if (pIndex === '' || cIndex === '' || fIndex === '') {
             updateStatus("Please select a food from all categories before calculating.", 'warning');
+            calculatedMeal = null;
+            document.getElementById("meal-calculation-result").style.display = "none";
             return;
         }
 
@@ -294,17 +423,130 @@
 
         if(!p || !c || !f) {
             updateStatus("Calculation error: Selected food item not found. Please refresh and try again.", 'error');
+            calculatedMeal = null;
+            document.getElementById("meal-calculation-result").style.display = "none";
             return;
         }
 
+        const proteinAmount = (p.perBlock * blocksCount).toFixed(2);
+        const carbAmount = (c.perBlock * blocksCount).toFixed(2);
+        const fatAmount = (f.perBlock * blocksCount).toFixed(2);
+
         document.getElementById("meal-output").innerHTML = `
-            <strong>Protein:</strong> ${(p.perBlock * blocks).toFixed(2)} ${p.unit} of ${p.name} <br>
-            <strong>Carb:</strong> ${(c.perBlock * blocks).toFixed(2)} ${c.unit} of ${c.name} <br>
-            <strong>Fat:</strong> ${(f.perBlock * blocks).toFixed(2)} ${f.unit} of ${f.name}
+            <strong>Protein:</strong> ${proteinAmount} ${p.unit} of ${p.name} <br>
+            <strong>Carb:</strong> ${carbAmount} ${c.unit} of ${c.name} <br>
+            <strong>Fat:</strong> ${fatAmount} ${f.unit} of ${f.name}
         `;
-        document.getElementById("result-box").style.display = "block";
-        updateStatus("Meal calculated!", 'success');
+        document.getElementById("meal-calculation-result").style.display = "block";
+        updateStatus("Meal calculated! Click 'Log This Meal' to save.", 'info');
+
+        // Store the calculated meal details for logging
+        calculatedMeal = {
+            foods: [
+                { name: p.name, category: 'protein', blocks: blocksCount, unit: p.unit, perBlock: p.perBlock },
+                { name: c.name, category: 'carb', blocks: blocksCount, unit: c.unit, perBlock: c.perBlock },
+                { name: f.name, category: 'fat', blocks: blocksCount, unit: f.unit, perBlock: f.perBlock }
+            ],
+            totalBlocks: blocksCount * 3 // Since it's a 3-block meal (p, c, f each count for 1 block towards the "meal blocks")
+        };
     });
+
+    document.getElementById('log-meal-btn').addEventListener('click', async () => {
+        if (!currentUser || !calculatedMeal) {
+            updateStatus("No meal calculated or not logged in.", 'warning');
+            return;
+        }
+
+        const mealDate = mealDateInput.value;
+        const mealType = document.getElementById('meal-type').value;
+
+        if (!mealDate || !mealType) {
+            updateStatus("Please select a date and meal type.", 'warning');
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "mealLogs"), {
+                userId: currentUser.uid,
+                date: mealDate,
+                mealType: mealType,
+                foodsConsumed: calculatedMeal.foods,
+                totalMealBlocks: calculatedMeal.totalBlocks,
+                timestamp: serverTimestamp() // For ordering and audit
+            });
+            updateStatus("Meal logged successfully!", 'success');
+            document.getElementById("meal-calculation-result").style.display = "none";
+            calculatedMeal = null; // Clear calculated meal
+            // Reload daily meals for current date to update summary
+            loadDailyMeals(currentUser.uid, mealDate);
+        } catch (error) {
+            updateStatus(`Error logging meal: ${error.message}`, 'error');
+        }
+    });
+
+    // --- DAILY MEAL LOGS DISPLAY LOGIC ---
+    async function loadDailyMeals(uid, date) {
+        if (!uid || !date) {
+            dailySummaryContent.innerHTML = "<p>Please log in to see your daily summary.</p>";
+            return;
+        }
+
+        dailySummaryContent.innerHTML = "<p>Loading daily meals...</p>";
+        let totalBlocksToday = 0;
+
+        try {
+            const q = query(
+                collection(db, "mealLogs"),
+                where("userId", "==", uid),
+                where("date", "==", date),
+                orderBy("timestamp", "asc") // Order by when they were logged
+            );
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                dailySummaryContent.innerHTML = "<p>No meals logged for this date.</p>";
+            } else {
+                let mealsHtml = "";
+                querySnapshot.forEach((doc) => {
+                    const meal = doc.data();
+                    let foodsList = meal.foodsConsumed.map(food => 
+                        `${food.blocks} block(s) of ${food.name} (${food.unit} per block: ${food.perBlock})`
+                    ).join(', ');
+                    
+                    mealsHtml += `
+                        <div class="meal-entry">
+                            <strong>${meal.mealType}</strong> (${meal.totalMealBlocks} blocks) - ${foodsList}
+                        </div>
+                    `;
+                    totalBlocksToday += meal.totalMealBlocks;
+                });
+                dailySummaryContent.innerHTML = mealsHtml;
+            }
+
+            // Display total blocks vs. goal
+            const dailyGoal = currentUserProfile ? currentUserProfile.dailyBlockGoal : 11; // Use actual goal or default
+            let summaryClass = 'blocks-summary info';
+            if (totalBlocksToday > dailyGoal + 1) { // +1 for a small buffer
+                summaryClass = 'blocks-summary error over';
+            } else if (totalBlocksToday < dailyGoal - 1) { // -1 for a small buffer
+                summaryClass = 'blocks-summary warning under';
+            } else {
+                summaryClass = 'blocks-summary success on-target';
+            }
+
+            const blocksSummaryHtml = `
+                <p class="${summaryClass}">Total Blocks Today: ${totalBlocksToday} / ${dailyGoal}</p>
+                <p>${totalBlocksToday > dailyGoal ? `You are ${totalBlocksToday - dailyGoal} blocks over your goal.` : ''}</p>
+                <p>${totalBlocksToday < dailyGoal ? `You have ${dailyGoal - totalBlocksToday} blocks remaining.` : ''}</p>
+            `;
+            dailySummaryContent.insertAdjacentHTML('afterbegin', blocksSummaryHtml); // Add at the top
+
+        } catch (error) {
+            dailySummaryContent.innerHTML = `<p class="status-message error">Error loading daily meals: ${error.message}</p>`;
+            updateStatus(`Error loading daily meals: ${error.message}`, 'error');
+        }
+    }
+
 
     // --- ADD NEW FOOD (ONE BY ONE) LOGIC ---
     document.getElementById('save-new-food-btn').addEventListener('click', async () => {
@@ -328,13 +570,11 @@
         try {
             await addDoc(collection(db, "foods"), newFood);
             updateStatus(`Food "${name}" added successfully!`, 'success');
-            // Clear form fields
             document.getElementById('new-food-name').value = '';
             document.getElementById('new-food-category').value = '';
             document.getElementById('new-food-unit').value = '';
             document.getElementById('new-food-perblock').value = '';
-            // Reload foods to update dropdowns
-            loadFoods();
+            loadFoods(); // Reload foods to update dropdowns
         } catch (error) {
             updateStatus(`Error adding food: ${error.message}`, 'error');
         }
@@ -365,7 +605,6 @@
         const validCategories = ['protein', 'carb', 'fat'];
 
         for (const food of foodList) {
-            // Validate each food item
             if (
                 typeof food.name !== 'string' || !food.name.trim() ||
                 typeof food.category !== 'string' || !validCategories.includes(food.category) ||
@@ -378,7 +617,6 @@
             }
 
             try {
-                // Add the food to Firestore
                 await addDoc(collection(db, "foods"), {
                     name: food.name.trim(),
                     category: food.category,
@@ -394,14 +632,13 @@
 
         if (addedCount > 0) {
             updateStatus(`Successfully added ${addedCount} foods. ${errorCount} errors/warnings.`, 'success');
-            document.getElementById('bulk-food-data').value = ''; // Clear textarea
-            loadFoods(); // Refresh dropdowns
+            document.getElementById('bulk-food-data').value = ''; 
+            loadFoods(); 
         } else {
             updateStatus(`No foods were added. ${errorCount} errors/warnings.`, 'error');
         }
 
         if (warningMessages.length > 0) {
-            // Display detailed warnings
             const detailMsg = warningMessages.join('\n');
             alert(`Bulk Add Summary:\nSuccessfully added: ${addedCount}\nErrors/Warnings: ${errorCount}\n\nDetails:\n${detailMsg}`);
         }
