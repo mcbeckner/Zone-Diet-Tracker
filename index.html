@@ -11,150 +11,85 @@
         h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input[type="number"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea { 
-            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
-        }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
         button:hover { background-color: #218838; }
         .secondary-btn { background-color: #007bff; }
-        .secondary-btn:hover { background-color: #0069d9; }
         .logout-btn { background-color: #dc3545; }
         #app-section, #login-section { display: none; } 
-        .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
-        .status-message { 
-            text-align: center; 
-            margin-top: 10px; 
-            padding: 5px; 
-            border-radius: 4px; 
-            font-size: 0.9em; 
-        }
+        .status-message { text-align: center; margin-top: 10px; padding: 5px; border-radius: 4px; font-size: 0.9em; }
         .status-message.error { color: red; background-color: #ffe0e0; border: 1px solid red; }
-        .status-message.warning { color: orange; background-color: #fff8e1; border: 1px solid orange; }
         .status-message.success { color: green; background-color: #e8f5e9; border: 1px solid green; }
-        .status-message.info { color: #555; background-color: #e0f2f7; border: 1px solid #ccc; }
-
         .section-divider { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        textarea { min-height: 150px; resize: vertical; }
-
-        #daily-summary-content { margin-top: 15px; background-color: #f8f9fa; padding: 15px; border-radius: 5px; }
-        .meal-entry, .recipe-ingredient { border: 1px solid #e9ecef; padding: 10px; margin-bottom: 8px; border-radius: 4px; background-color: #fff; }
-        .meal-entry strong { color: #0056b3; }
-        .blocks-summary { font-size: 1.1em; font-weight: bold; margin-top: 10px; }
-        .blocks-summary.over { color: red; }
-        .blocks-summary.under { color: orange; }
-        .blocks-summary.on-target { color: green; }
-
-        .recipe-ingredient { display: flex; align-items: center; margin-bottom: 5px; padding: 5px; background-color: #f1f8ff; }
-        .recipe-ingredient select, .recipe-ingredient input { width: calc(50% - 10px); margin-right: 10px; }
-        .recipe-ingredient .remove-ingredient { flex-shrink: 0; width: auto; margin: 0; padding: 5px 10px; background-color: #dc3545; color: white; border-radius: 4px; cursor: pointer; }
-        .add-ingredient-btn { width: auto; padding: 8px 15px; margin-top: 10px; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; display: inline-block; }
-        #recipe-ingredients-container { margin-bottom: 15px; border: 1px dashed #ccc; padding: 10px; border-radius: 5px; }
+        .meal-entry { border: 1px solid #e9ecef; padding: 10px; margin-bottom: 8px; border-radius: 4px; background-color: #fff; }
+        .macro-summary-bar { background: #e9ecef; padding: 15px; border-radius: 5px; font-weight: bold; display: flex; justify-content: space-around; }
+        .recipe-ingredient { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="header-title">Zone Tracker Login</h1>
+    <h1 id="header-title">Zone Tracker</h1>
     
+    <!-- LOGIN -->
     <div id="login-section">
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="email" placeholder="Enter email">
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Enter password">
-        </div>
+        <div class="form-group"><label>Email</label><input type="email" id="email"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="password"></div>
         <button id="login-btn">Log In</button>
         <button id="signup-btn" class="secondary-btn">Sign Up</button>
-        <p id="auth-error" style="color: red; text-align: center;"></p>
     </div>
 
+    <!-- APP -->
     <div id="app-section">
-        <p>Welcome! <span id="user-email"></span></p>
-        <button id="logout-btn" class="logout-btn">Log Out</button>
-        <hr>
+        <p>Logged in as: <span id="user-email"></span> <button id="logout-btn" class="logout-btn" style="width: auto; padding: 5px 10px;">Logout</button></p>
         
         <div class="section-divider">
             <h2>Your Settings</h2>
             <div class="form-group">
-                <label for="daily-block-goal">Daily Block Goal (for EACH: Protein, Carb, Fat)</label>
-                <input type="number" id="daily-block-goal" value="11" min="1" max="30">
+                <label>Daily Block Goal (per macro)</label>
+                <input type="number" id="daily-block-goal" value="11">
             </div>
-            <button id="save-settings-btn" class="secondary-btn">Save Settings</button>
+            <button id="save-settings-btn" class="secondary-btn">Save Goal</button>
         </div>
 
         <div class="section-divider">
-            <h2>Today's Summary (<span id="current-date"></span>)</h2>
-            <div id="daily-summary-content">
-                <p>Loading summary...</p>
+            <h2>Today's Summary (<span id="summary-date-display"></span>)</h2>
+            <div class="macro-summary-bar" id="macro-summary">
+                <span>P: 0/11</span> <span>C: 0/11</span> <span>F: 0/11</span>
             </div>
+            <div id="daily-meals-list" style="margin-top: 15px;"></div>
         </div>
 
         <div class="section-divider">
             <h2>Log a Meal</h2>
+            <div class="form-group"><label>Date</label><input type="date" id="meal-date"></div>
             <div class="form-group">
-                <label for="meal-date">Date</label>
-                <input type="date" id="meal-date">
-            </div>
-            <div class="form-group">
-                <label for="meal-type">Meal Type</label>
+                <label>Meal Type</label>
                 <select id="meal-type">
-                    <option value="Breakfast">Breakfast</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Snack">Snack</option>
-                    <option value="Other">Other</option>
+                    <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
                 </select>
             </div>
-
-            <div class="form-group">
-                <label for="select-recipe">Select a Global Recipe</label>
-                <select id="select-recipe"></select>
-            </div>
-
-            <p>-- OR -- Enter individual blocks:</p>
-
-            <div class="form-group"><label>Protein Blocks</label><input type="number" id="meal-protein-blocks" value="3" step="0.5"></div>
-            <div class="form-group"><label>Carb Blocks</label><input type="number" id="meal-carb-blocks" value="3" step="0.5"></div>
-            <div class="form-group"><label>Fat Blocks</label><input type="number" id="meal-fat-blocks" value="3" step="0.5"></div>
-
-            <div class="form-group"><label>Protein Source</label><select id="protein-source"></select></div>
-            <div class="form-group"><label>Carb Source</label><select id="carb-source"></select></div>
-            <div class="form-group"><label>Fat Source</label><select id="fat-source"></select></div>
-            
-            <button id="calculate-meal-btn">Log Meal</button>
-            
-            <div class="result" id="meal-calculation-result" style="display:none;">
-                <h3>Logged Food:</h3>
-                <p id="meal-output"></p>
-            </div>
+            <div class="form-group"><label>Use Shared Recipe</label><select id="recipe-select"></select></div>
+            <hr>
+            <div class="form-group"><label>Protein Blocks</label><input type="number" id="p-blocks" value="3" step="0.5"></div>
+            <div class="form-group"><label>Carb Blocks</label><input type="number" id="c-blocks" value="3" step="0.5"></div>
+            <div class="form-group"><label>Fat Blocks</label><input type="number" id="f-blocks" value="3" step="0.5"></div>
+            <button id="log-meal-btn">Log Meal</button>
         </div>
 
-        <!-- Recipe Section -->
         <div class="section-divider">
-            <h2>Create a Shared Recipe</h2>
-            <div class="form-group">
-                <label for="new-recipe-name">Recipe Name</label>
-                <input type="text" id="new-recipe-name" placeholder="e.g., Shared Zone Salad">
-            </div>
-            <div id="recipe-ingredients-container"></div>
-            <button id="add-ingredient-to-recipe-btn" class="add-ingredient-btn">Add Ingredient</button>
-            <button id="save-new-recipe-btn" class="secondary-btn">Save Shared Recipe</button>
-        </div>
-
-        <!-- Food Repository Management -->
-        <div class="section-divider">
-            <h2>Bulk Add Foods</h2>
-            <textarea id="bulk-food-data" placeholder='[{"name":"Broccoli","category":"carb","unit":"cups","perBlock":1.25}]'></textarea>
-            <button id="bulk-add-foods-btn" class="secondary-btn">Bulk Add Foods</button>
+            <h2>Create Shared Recipe</h2>
+            <div class="form-group"><label>Recipe Name</label><input type="text" id="recipe-name"></div>
+            <div id="recipe-ingredients"></div>
+            <button id="add-ing-btn" class="secondary-btn" style="width: auto;">+ Ingredient</button>
+            <button id="save-recipe-btn">Save Shared Recipe</button>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
     import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -170,175 +105,158 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let currentUser = null;
-    let currentUserProfile = null;
-    let foodDB = { protein: [], carb: [], fat: [] };
+    let userGoal = 11;
+    let foodList = [];
+    let currentIngs = [];
 
-    const statusMessage = document.createElement('p'); 
-    statusMessage.classList.add('status-message');
-    document.querySelector('.container').appendChild(statusMessage);
+    const status = document.createElement('div');
+    status.className = 'status-message';
+    document.querySelector('.container').appendChild(status);
 
-    function updateStatus(message, type = 'info') { 
-        statusMessage.textContent = message;
-        statusMessage.className = 'status-message ' + type;
+    function showStatus(msg, type='success') {
+        status.innerText = msg;
+        status.className = `status-message ${type}`;
     }
 
     onAuthStateChanged(auth, async (user) => {
-        currentUser = user;
         if (user) {
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('app-section').style.display = 'block';
             document.getElementById('user-email').innerText = user.email;
-            await loadUserProfile(user.uid);
-            await Promise.all([loadFoods(), loadRecipes(), loadDailyMeals(user.uid, document.getElementById('meal-date').value)]);
+            
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                userGoal = userDoc.data().dailyBlockGoal || 11;
+                document.getElementById('daily-block-goal').value = userGoal;
+            }
+
+            const foodsSnap = await getDocs(collection(db, "foods"));
+            foodList = foodsSnap.docs.map(d => d.data());
+
+            loadRecipes();
+            refreshSummary();
         } else {
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('app-section').style.display = 'none';
         }
     });
 
-    async function loadUserProfile(uid) {
-        const userDocRef = doc(db, "users", uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            currentUserProfile = userDocSnap.data();
-            document.getElementById('daily-block-goal').value = currentUserProfile.dailyBlockGoal || 11;
-        } else {
-            currentUserProfile = { email: currentUser.email, dailyBlockGoal: 11 };
-            await setDoc(userDocRef, currentUserProfile);
-        }
-    }
-
-    async function loadFoods() {
-        const querySnapshot = await getDocs(collection(db, "foods"));
-        foodDB = { protein: [], carb: [], fat: [] };
-        querySnapshot.forEach((doc) => {
-            const food = doc.data();
-            if(foodDB[food.category]) foodDB[food.category].push(food);
-        });
-        populateFoodSelect(document.getElementById('protein-source'), foodDB.protein);
-        populateFoodSelect(document.getElementById('carb-source'), foodDB.carb);
-        populateFoodSelect(document.getElementById('fat-source'), foodDB.fat);
-    }
-
-    function populateFoodSelect(selectElement, dataArray) {
-        selectElement.innerHTML = '<option value="">-- Optional Source --</option>';
-        dataArray.sort((a, b) => a.name.localeCompare(b.name));
-        dataArray.forEach(food => selectElement.add(new Option(food.name, JSON.stringify(food))));
-    }
-
-    // SHARED RECIPE LOADING (Removed userId filter)
-    async function loadRecipes() {
-        try {
-            const q = query(collection(db, "recipes"), orderBy("name", "asc"));
-            const querySnapshot = await getDocs(q);
-            const select = document.getElementById('select-recipe');
-            select.innerHTML = '<option value="">-- Select a Recipe --</option>';
-            querySnapshot.forEach((doc) => {
-                const recipe = doc.data();
-                select.add(new Option(recipe.name, JSON.stringify(recipe)));
-            });
-        } catch (error) {
-            updateStatus("Index building for recipes. Please wait 5 mins.", "warning");
-        }
-    }
-
-    document.getElementById('save-new-recipe-btn').addEventListener('click', async () => {
-        const name = document.getElementById('new-recipe-name').value;
-        const ingredients = [];
-        let p = 0, c = 0, f = 0;
+    // REFRESH SUMMARY
+    async function refreshSummary() {
+        const date = document.getElementById('meal-date').value;
+        document.getElementById('summary-date-display').innerText = date;
         
-        currentRecipeIngredients.forEach(ing => {
-            ingredients.push({ name: ing.food.name, category: ing.food.category, blocks: ing.blocks });
-            if(ing.food.category === 'protein') p += ing.blocks;
-            if(ing.food.category === 'carb') c += ing.blocks;
-            if(ing.food.category === 'fat') f += ing.blocks;
+        const q = query(collection(db, "mealLogs"), where("userId", "==", auth.currentUser.uid), where("date", "==", date));
+        const snap = await getDocs(q);
+        
+        let pTotal = 0, cTotal = 0, fTotal = 0;
+        let html = "";
+
+        snap.forEach(d => {
+            const m = d.data();
+            // Fallback to 0 if data is missing/NaN to prevent "NaN" in UI
+            const p = parseFloat(m.proteinBlocks) || 0;
+            const c = parseFloat(m.carbBlocks) || 0;
+            const f = parseFloat(m.fatBlocks) || 0;
+
+            pTotal += p; cTotal += c; fTotal += f;
+            html += `<div class="meal-entry"><strong>${m.mealType}</strong>: ${p}P, ${c}C, ${f}F</div>`;
+        });
+
+        document.getElementById('macro-summary').innerHTML = `
+            <span>P: ${pTotal}/${userGoal}</span> 
+            <span>C: ${cTotal}/${userGoal}</span> 
+            <span>F: ${fTotal}/${userGoal}</span>
+        `;
+        document.getElementById('daily-meals-list').innerHTML = html;
+    }
+
+    // LOG MEAL
+    document.getElementById('log-meal-btn').addEventListener('click', async () => {
+        const meal = {
+            userId: auth.currentUser.uid,
+            date: document.getElementById('meal-date').value,
+            mealType: document.getElementById('meal-type').value,
+            proteinBlocks: parseFloat(document.getElementById('p-blocks').value) || 0,
+            carbBlocks: parseFloat(document.getElementById('c-blocks').value) || 0,
+            fatBlocks: parseFloat(document.getElementById('f-blocks').value) || 0,
+            timestamp: serverTimestamp()
+        };
+        await addDoc(collection(db, "mealLogs"), meal);
+        showStatus("Meal Logged!");
+        refreshSummary();
+    });
+
+    // RECIPE SELECTION
+    document.getElementById('recipe-select').addEventListener('change', (e) => {
+        if(!e.target.value) return;
+        const r = JSON.parse(e.target.value);
+        document.getElementById('p-blocks').value = r.totalProteinBlocks;
+        document.getElementById('c-blocks').value = r.totalCarbBlocks;
+        document.getElementById('f-blocks').value = r.totalFatBlocks;
+    });
+
+    async function loadRecipes() {
+        const snap = await getDocs(collection(db, "recipes"));
+        const sel = document.getElementById('recipe-select');
+        sel.innerHTML = '<option value="">-- Select a Recipe --</option>';
+        snap.forEach(d => {
+            const r = d.data();
+            sel.add(new Option(r.name, JSON.stringify(r)));
+        });
+    }
+
+    // ADD RECIPE
+    document.getElementById('add-ing-btn').addEventListener('click', () => {
+        const idx = currentIngs.length;
+        currentIngs.push({ food: '', blocks: 1 });
+        const div = document.createElement('div');
+        div.className = 'recipe-ingredient';
+        div.innerHTML = `<select id="ing-f-${idx}"></select> <input type="number" id="ing-b-${idx}" value="1" style="width:60px">`;
+        document.getElementById('recipe-ingredients').appendChild(div);
+        
+        const fSel = document.getElementById(`ing-f-${idx}`);
+        foodList.forEach(f => fSel.add(new Option(f.name, JSON.stringify(f))));
+    });
+
+    document.getElementById('save-recipe-btn').addEventListener('click', async () => {
+        let p = 0, c = 0, f = 0;
+        currentIngs.forEach((ing, i) => {
+            const food = JSON.parse(document.getElementById(`ing-f-${i}`).value);
+            const b = parseFloat(document.getElementById(`ing-b-${i}`).value);
+            if(food.category === 'protein') p += b;
+            if(food.category === 'carb') c += b;
+            if(food.category === 'fat') f += b;
         });
 
         await addDoc(collection(db, "recipes"), {
-            name,
-            ingredients,
+            name: document.getElementById('recipe-name').value,
             totalProteinBlocks: p,
             totalCarbBlocks: c,
-            totalFatBlocks: f,
-            createdAt: serverTimestamp()
+            totalFatBlocks: f
         });
-        updateStatus("Global Recipe Saved!", "success");
+        showStatus("Recipe Saved!");
         loadRecipes();
     });
 
-    // Handle Calculation and Logging
-    document.getElementById('calculate-meal-btn').addEventListener('click', async () => {
-        const mealData = {
-            userId: currentUser.uid,
-            date: document.getElementById('meal-date').value,
-            mealType: document.getElementById('meal-type').value,
-            proteinBlocks: parseFloat(document.getElementById('meal-protein-blocks').value),
-            carbBlocks: parseFloat(document.getElementById('meal-carb-blocks').value),
-            fatBlocks: parseFloat(document.getElementById('meal-fat-blocks').value),
-            timestamp: serverTimestamp()
-        };
-        await addDoc(collection(db, "mealLogs"), mealData);
-        updateStatus("Meal Logged!", "success");
-        loadDailyMeals(currentUser.uid, mealData.date);
-    });
-
-    // Daily Summary logic
-    async function loadDailyMeals(uid, date) {
-        const q = query(collection(db, "mealLogs"), where("userId", "==", uid), where("date", "==", date));
-        const snap = await getDocs(q);
-        let p = 0, c = 0, f = 0;
-        let html = "";
-        snap.forEach(doc => {
-            const m = doc.data();
-            p += m.proteinBlocks; c += m.carbBlocks; f += m.fatBlocks;
-            html += `<div class="meal-entry"><strong>${m.mealType}</strong>: ${m.proteinBlocks}P, ${m.carbBlocks}C, ${m.fatBlocks}F</div>`;
-        });
-        const goal = currentUserProfile.dailyBlockGoal;
-        document.getElementById('daily-summary-content').innerHTML = `
-            <p>Protein: ${p}/${goal} | Carb: ${c}/${goal} | Fat: ${f}/${goal}</p>
-            ${html}
-        `;
-    }
-
-    // Recipe Ingredients Helper
-    let currentRecipeIngredients = [];
-    document.getElementById('add-ingredient-to-recipe-btn').addEventListener('click', () => {
-        const ing = { food: foodDB.protein[0] || {}, blocks: 1 };
-        currentRecipeIngredients.push(ing);
-        renderRecipeIngredients();
-    });
-
-    function renderRecipeIngredients() {
-        const container = document.getElementById('recipe-ingredients-container');
-        container.innerHTML = "";
-        currentRecipeIngredients.forEach((ing, i) => {
-            const div = document.createElement('div');
-            div.innerHTML = `<select id="ing-${i}"></select> <input type="number" id="ing-b-${i}" value="1"> blocks`;
-            container.appendChild(div);
-            const sel = div.querySelector('select');
-            [...foodDB.protein, ...foodDB.carb, ...foodDB.fat].forEach(f => sel.add(new Option(f.name, JSON.stringify(f))));
-            sel.addEventListener('change', (e) => currentRecipeIngredients[i].food = JSON.parse(e.target.value));
-        });
-    }
-
-    // Settings
+    // SETTINGS & MISC
     document.getElementById('save-settings-btn').addEventListener('click', async () => {
-        const goal = parseInt(document.getElementById('daily-block-goal').value);
-        await updateDoc(doc(db, "users", currentUser.uid), { dailyBlockGoal: goal });
-        currentUserProfile.dailyBlockGoal = goal;
-        updateStatus("Settings Saved", "success");
+        const g = parseInt(document.getElementById('daily-block-goal').value);
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { dailyBlockGoal: g });
+        userGoal = g;
+        showStatus("Goal Updated!");
+        refreshSummary();
     });
-    
-    // Auth & Misc
+
     document.getElementById('login-btn').addEventListener('click', () => {
-        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value).catch(e => showStatus(e.message, 'error'));
     });
     document.getElementById('signup-btn').addEventListener('click', () => {
-        createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+        createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value).catch(e => showStatus(e.message, 'error'));
     });
     document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
     document.getElementById('meal-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('meal-date').addEventListener('change', refreshSummary);
 
 </script>
 </body>
