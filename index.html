@@ -19,7 +19,7 @@
         .secondary-btn { background-color: #007bff; }
         .secondary-btn:hover { background-color: #0069d9; }
         .logout-btn { background-color: #dc3545; }
-        #app-section, #login-section { display: none; } /* Hidden by default */
+        #app-section, #login-section { display: none; } 
         .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
         .status-message { 
             text-align: center; 
@@ -43,7 +43,6 @@
         .blocks-summary.over { color: red; }
         .blocks-summary.under { color: orange; }
         .blocks-summary.on-target { color: green; }
-        .blocks-summary.macro-summary { font-size: 0.9em; margin-left: 10px; } /* For individual macro lines */
 
         .recipe-ingredient { display: flex; align-items: center; margin-bottom: 5px; padding: 5px; background-color: #f1f8ff; }
         .recipe-ingredient select, .recipe-ingredient input { width: calc(50% - 10px); margin-right: 10px; }
@@ -57,7 +56,6 @@
 <div class="container">
     <h1 id="header-title">Zone Tracker Login</h1>
     
-    <!-- LOGIN SECTION -->
     <div id="login-section">
         <div class="form-group">
             <label>Email</label>
@@ -72,13 +70,11 @@
         <p id="auth-error" style="color: red; text-align: center;"></p>
     </div>
 
-    <!-- MAIN APP SECTION -->
     <div id="app-section">
         <p>Welcome! <span id="user-email"></span></p>
         <button id="logout-btn" class="logout-btn">Log Out</button>
         <hr>
         
-        <!-- USER SETTINGS -->
         <div class="section-divider">
             <h2>Your Settings</h2>
             <div class="form-group">
@@ -88,7 +84,6 @@
             <button id="save-settings-btn" class="secondary-btn">Save Settings</button>
         </div>
 
-        <!-- DAILY SUMMARY -->
         <div class="section-divider">
             <h2>Today's Summary (<span id="current-date"></span>)</h2>
             <div id="daily-summary-content">
@@ -96,10 +91,8 @@
             </div>
         </div>
 
-        <!-- MEAL LOGGER -->
         <div class="section-divider">
             <h2>Log a Meal</h2>
-            <p>Select your meal details below.</p>
             <div class="form-group">
                 <label for="meal-date">Date</label>
                 <input type="date" id="meal-date">
@@ -116,107 +109,54 @@
             </div>
 
             <div class="form-group">
-                <label for="select-recipe">Select a Recipe (Optional)</label>
+                <label for="select-recipe">Select a Global Recipe</label>
                 <select id="select-recipe"></select>
             </div>
 
-            <p>-- OR -- Enter individual blocks below:</p>
+            <p>-- OR -- Enter individual blocks:</p>
 
-            <div class="form-group">
-                <label for="meal-protein-blocks">Protein Blocks for this meal</label>
-                <input type="number" id="meal-protein-blocks" value="3" min="0" step="0.5">
-            </div>
-            <div class="form-group">
-                <label for="meal-carb-blocks">Carbohydrate Blocks for this meal</label>
-                <input type="number" id="meal-carb-blocks" value="3" min="0" step="0.5">
-            </div>
-            <div class="form-group">
-                <label for="meal-fat-blocks">Fat Blocks for this meal</label>
-                <input type="number" id="meal-fat-blocks" value="3" min="0" step="0.5">
-            </div>
+            <div class="form-group"><label>Protein Blocks</label><input type="number" id="meal-protein-blocks" value="3" step="0.5"></div>
+            <div class="form-group"><label>Carb Blocks</label><input type="number" id="meal-carb-blocks" value="3" step="0.5"></div>
+            <div class="form-group"><label>Fat Blocks</label><input type="number" id="meal-fat-blocks" value="3" step="0.5"></div>
 
-            <p><i>Note: These blocks will be used to calculate actual food amounts (if individual foods are selected below).</i></p>
-
-            <div class="form-group"><label>Protein Source (Optional, for detailed logging)</label><select id="protein-source"></select></div>
-            <div class="form-group"><label>Carb Source (Optional, for detailed logging)</label><select id="carb-source"></select></div>
-            <div class="form-group"><label>Fat Source (Optional, for detailed logging)</label><select id="fat-source"></select></div>
+            <div class="form-group"><label>Protein Source</label><select id="protein-source"></select></div>
+            <div class="form-group"><label>Carb Source</label><select id="carb-source"></select></div>
+            <div class="form-group"><label>Fat Source</label><select id="fat-source"></select></div>
             
-            <button id="calculate-meal-btn">Calculate & Log Meal</button>
+            <button id="calculate-meal-btn">Log Meal</button>
             
             <div class="result" id="meal-calculation-result" style="display:none;">
-                <h3>Calculated Food Amounts:</h3>
+                <h3>Logged Food:</h3>
                 <p id="meal-output"></p>
-                <!-- Log This Meal button is now combined with Calculate & Log -->
             </div>
         </div>
 
-        <!-- ADD NEW FOOD SECTION -->
+        <!-- Recipe Section -->
         <div class="section-divider">
-            <h2>Add New Food (One by One)</h2>
-            <div class="form-group">
-                <label for="new-food-name">Food Name</label>
-                <input type="text" id="new-food-name" placeholder="e.g., Ground Beef (90/10)" required>
-            </div>
-            <div class="form-group">
-                <label for="new-food-category">Category</label>
-                <select id="new-food-category" required>
-                    <option value="">Select Category</option>
-                    <option value="protein">Protein</option>
-                    <option value="carb">Carbohydrate</option>
-                    <option value="fat">Fat</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="new-food-unit">Unit</label>
-                <input type="text" id="new-food-unit" placeholder="e.g., oz, cup, tbsp, medium, nuts" required>
-            </div>
-            <div class="form-group">
-                <label for="new-food-perblock">Amount per 1 Block (e.g., 1 for 1oz protein, 0.5 for 0.5 medium carb)</label>
-                <input type="number" id="new-food-perblock" step="0.01" min="0.01" placeholder="e.g., 1, 0.5, 3" required>
-            </div>
-            <button id="save-new-food-btn" class="secondary-btn">Save New Food</button>
-        </div>
-
-        <!-- BULK ADD FOODS SECTION -->
-        <div class="section-divider">
-            <h2>Bulk Add Foods</h2>
-            <p>Paste a JSON array of food objects below. Each object should have 'name', 'category' (protein, carb, fat), 'unit', and 'perBlock'.</p>
-            <p>Example: <code>[{"name":"Broccoli","category":"carb","unit":"cups","perBlock":1.25}, {"name":"Olive Oil","category":"fat","unit":"tsp","perBlock":0.33}]</code></p>
-            <div class="form-group">
-                <label for="bulk-food-data">JSON Food Data</label>
-                <textarea id="bulk-food-data" placeholder='[{"name":"Example Protein","category":"protein","unit":"g","perBlock":20}]'></textarea>
-            </div>
-            <button id="bulk-add-foods-btn" class="secondary-btn">Bulk Add Foods</button>
-        </div>
-
-        <!-- ADD NEW RECIPE SECTION -->
-        <div class="section-divider">
-            <h2>Add New Recipe</h2>
+            <h2>Create a Shared Recipe</h2>
             <div class="form-group">
                 <label for="new-recipe-name">Recipe Name</label>
-                <input type="text" id="new-recipe-name" placeholder="e.g., Zone Omelette" required>
+                <input type="text" id="new-recipe-name" placeholder="e.g., Shared Zone Salad">
             </div>
-            <div class="form-group">
-                <label for="new-recipe-description">Description (Optional)</label>
-                <textarea id="new-recipe-description" rows="3" placeholder="Brief description or instructions"></textarea>
-            </div>
-            <h3>Ingredients:</h3>
-            <div id="recipe-ingredients-container">
-                <!-- Ingredients will be added here dynamically -->
-            </div>
+            <div id="recipe-ingredients-container"></div>
             <button id="add-ingredient-to-recipe-btn" class="add-ingredient-btn">Add Ingredient</button>
-            <button id="save-new-recipe-btn" class="secondary-btn">Save Recipe</button>
+            <button id="save-new-recipe-btn" class="secondary-btn">Save Shared Recipe</button>
+        </div>
+
+        <!-- Food Repository Management -->
+        <div class="section-divider">
+            <h2>Bulk Add Foods</h2>
+            <textarea id="bulk-food-data" placeholder='[{"name":"Broccoli","category":"carb","unit":"cups","perBlock":1.25}]'></textarea>
+            <button id="bulk-add-foods-btn" class="secondary-btn">Bulk Add Foods</button>
         </div>
     </div>
 </div>
 
-<!-- FIREBASE SDKS (Using modules) -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
     import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    // YOUR EMBEDDED FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyDM47EtYj-yzw7ryBh-8xr3KQ7D6Sz4pP0",
       authDomain: "zonediettracker.firebaseapp.com",
@@ -226,38 +166,14 @@
       appId: "1:167080077633:web:7761e0850292d7f51f99c0"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Global variables for current user, food data, and recipes
     let currentUser = null;
     let currentUserProfile = null;
-    let foodDB = { protein: [], carb: [], fat: [] }; // All foods for dropdowns
-    let allRecipes = []; // All recipes for dropdowns
-    let calculatedMeal = null; // To store the meal calculated before logging it
+    let foodDB = { protein: [], carb: [], fat: [] };
 
-    // DOM Elements
-    const loginSection = document.getElementById('login-section');
-    const appSection = document.getElementById('app-section');
-    const headerTitle = document.getElementById('header-title');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const authError = document.getElementById('auth-error');
-    const dailyBlockGoalInput = document.getElementById('daily-block-goal');
-    const mealDateInput = document.getElementById('meal-date');
-    const dailySummaryContent = document.getElementById('daily-summary-content');
-
-    const mealProteinBlocksInput = document.getElementById('meal-protein-blocks');
-    const mealCarbBlocksInput = document.getElementById('meal-carb-blocks');
-    const mealFatBlocksInput = document.getElementById('meal-fat-blocks');
-    const proteinSourceSelect = document.getElementById('protein-source');
-    const carbSourceSelect = document.getElementById('carb-source');
-    const fatSourceSelect = document.getElementById('fat-source');
-    const selectRecipeDropdown = document.getElementById('select-recipe');
-    
-    // Status message element
     const statusMessage = document.createElement('p'); 
     statusMessage.classList.add('status-message');
     document.querySelector('.container').appendChild(statusMessage);
@@ -267,613 +183,163 @@
         statusMessage.className = 'status-message ' + type;
     }
 
-    // Helper to format date for Firestore querying
-    function getTodayDateString() {
-        const today = new Date();
-        return today.toISOString().split('T')[0]; // YYYY-MM-DD
-    }
-
-    // Set default date for meal logger
-    mealDateInput.value = getTodayDateString();
-    document.getElementById('current-date').textContent = getTodayDateString();
-
-    // --- AUTHENTICATION & USER PROFILE LOGIC ---
     onAuthStateChanged(auth, async (user) => {
         currentUser = user;
         if (user) {
-            loginSection.style.display = 'none';
-            appSection.style.display = 'block';
-            headerTitle.innerText = "Zone Tracker";
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-section').style.display = 'block';
             document.getElementById('user-email').innerText = user.email;
-            updateStatus("Logged in successfully. Loading data...", 'info');
-            
             await loadUserProfile(user.uid);
-            
-            await Promise.all([
-                loadFoods(),
-                loadRecipes(), // Load recipes when logged in
-                loadDailyMeals(user.uid, mealDateInput.value)
-            ]);
-            updateStatus("All data loaded. Ready!", 'success');
-
+            await Promise.all([loadFoods(), loadRecipes(), loadDailyMeals(user.uid, document.getElementById('meal-date').value)]);
         } else {
-            loginSection.style.display = 'block';
-            appSection.style.display = 'none';
-            headerTitle.innerText = "Zone Tracker Login";
-            updateStatus("Please log in or sign up.", 'info');
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('app-section').style.display = 'none';
         }
     });
 
     async function loadUserProfile(uid) {
         const userDocRef = doc(db, "users", uid);
         const userDocSnap = await getDoc(userDocRef);
-
         if (userDocSnap.exists()) {
             currentUserProfile = userDocSnap.data();
-            dailyBlockGoalInput.value = currentUserProfile.dailyBlockGoal || 11; 
-            updateStatus("User profile loaded.", 'info');
+            document.getElementById('daily-block-goal').value = currentUserProfile.dailyBlockGoal || 11;
         } else {
-            currentUserProfile = {
-                email: currentUser.email,
-                dailyBlockGoal: 11, 
-                createdAt: serverTimestamp()
-            };
+            currentUserProfile = { email: currentUser.email, dailyBlockGoal: 11 };
             await setDoc(userDocRef, currentUserProfile);
-            dailyBlockGoalInput.value = 11;
-            updateStatus("New user profile created with default settings.", 'info');
         }
     }
 
-    document.getElementById('signup-btn').addEventListener('click', async () => {
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                email: userCredential.user.email,
-                dailyBlockGoal: 11, 
-                createdAt: serverTimestamp()
-            });
-            updateStatus("Signed up and logged in!", 'success');
-        } catch (error) {
-            authError.innerText = error.message;
-            updateStatus(`Signup error: ${error.message}`, 'error');
-        }
-    });
-
-    document.getElementById('login-btn').addEventListener('click', async () => {
-        try {
-            await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-            updateStatus("Logged in!", 'success');
-        } catch (error) {
-            authError.innerText = error.message;
-            updateStatus(`Login error: ${error.message}`, 'error');
-        }
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try {
-            await signOut(auth);
-            updateStatus("Logged out.", 'info');
-            currentUserProfile = null; 
-        } catch (error) {
-            updateStatus(`Logout error: ${error.message}`, 'error');
-        }
-    });
-
-    document.getElementById('save-settings-btn').addEventListener('click', async () => {
-        if (!currentUser) {
-            updateStatus("Please log in to save settings.", 'warning');
-            return;
-        }
-        const newGoal = parseInt(dailyBlockGoalInput.value);
-        if (isNaN(newGoal) || newGoal <= 0) {
-            updateStatus("Please enter a valid positive number for your daily block goal.", 'warning');
-            return;
-        }
-        try {
-            await updateDoc(doc(db, "users", currentUser.uid), { dailyBlockGoal: newGoal });
-            currentUserProfile.dailyBlockGoal = newGoal; 
-            updateStatus("Daily block goal (for each macro) updated successfully!", 'success');
-            loadDailyMeals(currentUser.uid, mealDateInput.value); 
-        } catch (error) {
-            updateStatus(`Error saving settings: ${error.message}`, 'error');
-        }
-    });
-
-
-    // --- FOOD DATABASE LOGIC ---
     async function loadFoods() {
-        try {
-            updateStatus("Attempting to load foods from Firestore...", 'info');
-            const querySnapshot = await getDocs(collection(db, "foods"));
-            
-            if (querySnapshot.empty) {
-                updateStatus("Firebase query returned an EMPTY result for 'foods' collection. No documents found.", 'warning');
-                proteinSourceSelect.innerHTML = "";
-                carbSourceSelect.innerHTML = "";
-                fatSourceSelect.innerHTML = "";
-                populateFoodSelect(proteinSourceSelect, []);
-                populateFoodSelect(carbSourceSelect, []);
-                populateFoodSelect(fatSourceSelect, []);
-                return; 
-            }
-
-            foodDB = { protein: [], carb: [] , fat: [] }; // Reset arrays
-            
-            querySnapshot.forEach((doc) => {
-                const food = doc.data();
-                if (!food.name || !food.category || typeof food.perBlock !== 'number' || !food.unit) {
-                    updateStatus(`Warning: Skipping malformed food document (ID: ${doc.id}). Missing fields or incorrect 'perBlock' type (expected number).`, 'warning');
-                    return; 
-                }
-
-                if(foodDB[food.category]) {
-                    foodDB[food.category].push(food);
-                } else {
-                    updateStatus(`Warning: Food '${food.name}' (ID: ${doc.id}) has an unrecognized category '${food.category}'. Expected 'protein', 'carb', or 'fat'. Check spelling/casing.`, 'warning');
-                }
-            });
-
-            // Populate meal logging food source dropdowns
-            populateFoodSelect(proteinSourceSelect, foodDB.protein);
-            populateFoodSelect(carbSourceSelect, foodDB.carb);
-            populateFoodSelect(fatSourceSelect, foodDB.fat);
-            
-            if (foodDB.protein.length === 0 && foodDB.carb.length === 0 && foodDB.fat.length === 0) {
-                 updateStatus("Critical Error: No usable food items were found after processing the collection. Check Firestore data and categories.", 'error');
-            } else if (foodDB.protein.length === 0 || foodDB.carb.length === 0 || foodDB.fat.length === 0) {
-                 updateStatus(`Warning: Some food categories are empty. Protein: ${foodDB.protein.length}, Carb: ${foodDB.carb.length}, Fat: ${foodDB.fat.length}.`, 'warning');
-            } else {
-                updateStatus("Foods loaded, categorized, and dropdowns populated.", 'success');
-            }
-
-        } catch (error) {
-            updateStatus(`FATAL ERROR loading foods from Firestore: ${error.name} - ${error.message}. Check Firebase Console -> Firestore -> Rules.`, 'error');
-        }
+        const querySnapshot = await getDocs(collection(db, "foods"));
+        foodDB = { protein: [], carb: [], fat: [] };
+        querySnapshot.forEach((doc) => {
+            const food = doc.data();
+            if(foodDB[food.category]) foodDB[food.category].push(food);
+        });
+        populateFoodSelect(document.getElementById('protein-source'), foodDB.protein);
+        populateFoodSelect(document.getElementById('carb-source'), foodDB.carb);
+        populateFoodSelect(document.getElementById('fat-source'), foodDB.fat);
     }
 
     function populateFoodSelect(selectElement, dataArray) {
-        selectElement.innerHTML = '<option value="">-- Optional Source --</option>'; // Always add a default empty option
-        if (dataArray.length === 0) {
-            selectElement.disabled = true; 
-            return;
-        }
-        selectElement.disabled = false;
+        selectElement.innerHTML = '<option value="">-- Optional Source --</option>';
         dataArray.sort((a, b) => a.name.localeCompare(b.name));
-        dataArray.forEach((food, index) => {
-            selectElement.add(new Option(food.name, JSON.stringify(food))); // Store full food object for later use
-        });
+        dataArray.forEach(food => selectElement.add(new Option(food.name, JSON.stringify(food))));
     }
 
-    // --- MEAL CALCULATION AND LOGGING LOGIC ---
-    // Combined calculate and log into one button, simplified input for blocks
-    document.getElementById('calculate-meal-btn').addEventListener('click', async () => {
-        if (!currentUser) {
-            updateStatus("Please log in to log a meal.", 'warning');
-            return;
-        }
-
-        const mealDate = mealDateInput.value;
-        const mealType = document.getElementById('meal-type').value;
-        const proteinBlocks = parseFloat(mealProteinBlocksInput.value);
-        const carbBlocks = parseFloat(mealCarbBlocksInput.value);
-        const fatBlocks = parseFloat(mealFatBlocksInput.value);
-
-        if (!mealDate || !mealType || isNaN(proteinBlocks) || isNaN(carbBlocks) || isNaN(fatBlocks)) {
-            updateStatus("Please fill in date, meal type, and all block values.", 'warning');
-            return;
-        }
-
-        const foodsConsumedArray = [];
-        let mealOutputHtml = '';
-
-        // Handle protein source
-        const pSourceValue = proteinSourceSelect.value;
-        if (pSourceValue) {
-            const p = JSON.parse(pSourceValue);
-            foodsConsumedArray.push({ name: p.name, category: 'protein', blocks: proteinBlocks, unit: p.unit, perBlock: p.perBlock });
-            mealOutputHtml += `<strong>Protein:</strong> ${(p.perBlock * proteinBlocks).toFixed(2)} ${p.unit} of ${p.name} (${proteinBlocks} blocks)<br>`;
-        } else if (proteinBlocks > 0) {
-             foodsConsumedArray.push({ name: 'Generic Protein', category: 'protein', blocks: proteinBlocks });
-             mealOutputHtml += `<strong>Protein:</strong> ${proteinBlocks} blocks (Generic)<br>`;
-        }
-
-        // Handle carb source
-        const cSourceValue = carbSourceSelect.value;
-        if (cSourceValue) {
-            const c = JSON.parse(cSourceValue);
-            foodsConsumedArray.push({ name: c.name, category: 'carb', blocks: carbBlocks, unit: c.unit, perBlock: c.perBlock });
-            mealOutputHtml += `<strong>Carb:</strong> ${(c.perBlock * carbBlocks).toFixed(2)} ${c.unit} of ${c.name} (${carbBlocks} blocks)<br>`;
-        } else if (carbBlocks > 0) {
-            foodsConsumedArray.push({ name: 'Generic Carb', category: 'carb', blocks: carbBlocks });
-            mealOutputHtml += `<strong>Carb:</strong> ${carbBlocks} blocks (Generic)<br>`;
-        }
-
-        // Handle fat source
-        const fSourceValue = fatSourceSelect.value;
-        if (fSourceValue) {
-            const f = JSON.parse(fSourceValue);
-            foodsConsumedArray.push({ name: f.name, category: 'fat', blocks: fatBlocks, unit: f.unit, perBlock: f.perBlock });
-            mealOutputHtml += `<strong>Fat:</strong> ${(f.perBlock * fatBlocks).toFixed(2)} ${f.unit} of ${f.name} (${fatBlocks} blocks)<br>`;
-        } else if (fatBlocks > 0) {
-            foodsConsumedArray.push({ name: 'Generic Fat', category: 'fat', blocks: fatBlocks });
-            mealOutputHtml += `<strong>Fat:</strong> ${fatBlocks} blocks (Generic)<br>`;
-        }
-
-        if (foodsConsumedArray.length === 0) {
-            updateStatus("No blocks or food sources selected for this meal.", 'warning');
-            document.getElementById("meal-calculation-result").style.display = "none";
-            return;
-        }
-
-        document.getElementById("meal-output").innerHTML = mealOutputHtml;
-        document.getElementById("meal-calculation-result").style.display = "block";
-        updateStatus("Meal ready to be logged.", 'info');
-
+    // SHARED RECIPE LOADING (Removed userId filter)
+    async function loadRecipes() {
         try {
-            await addDoc(collection(db, "mealLogs"), {
-                userId: currentUser.uid,
-                date: mealDate,
-                mealType: mealType,
-                foodsConsumed: foodsConsumedArray,
-                proteinBlocks: proteinBlocks,
-                carbBlocks: carbBlocks,
-                fatBlocks: fatBlocks,
-                timestamp: serverTimestamp() 
-            });
-            updateStatus("Meal logged successfully!", 'success');
-            // Clear current meal inputs
-            mealProteinBlocksInput.value = 3;
-            mealCarbBlocksInput.value = 3;
-            mealFatBlocksInput.value = 3;
-            proteinSourceSelect.value = '';
-            carbSourceSelect.value = '';
-            fatSourceSelect.value = '';
-            selectRecipeDropdown.value = ''; // Reset recipe dropdown
-            document.getElementById("meal-calculation-result").style.display = "none";
-
-            loadDailyMeals(currentUser.uid, mealDate);
-        } catch (error) {
-            updateStatus(`Error logging meal: ${error.message}`, 'error');
-        }
-    });
-
-    // Handle recipe selection
-    selectRecipeDropdown.addEventListener('change', (event) => {
-        const selectedRecipeJson = event.target.value;
-        if (selectedRecipeJson) {
-            const recipe = JSON.parse(selectedRecipeJson);
-            mealProteinBlocksInput.value = recipe.totalProteinBlocks;
-            mealCarbBlocksInput.value = recipe.totalCarbBlocks;
-            mealFatBlocksInput.value = recipe.totalFatBlocks;
-            updateStatus(`Meal blocks pre-filled from recipe: ${recipe.name}`, 'info');
-            // Clear individual food selections if recipe is chosen
-            proteinSourceSelect.value = '';
-            carbSourceSelect.value = '';
-            fatSourceSelect.value = '';
-        } else {
-            // Reset to default if no recipe selected
-            mealProteinBlocksInput.value = 3;
-            mealCarbBlocksInput.value = 3;
-            mealFatBlocksInput.value = 3;
-        }
-    });
-
-
-    // --- DAILY MEAL LOGS DISPLAY LOGIC ---
-    mealDateInput.addEventListener('change', () => {
-        if (currentUser && currentUser.uid) {
-            document.getElementById('current-date').textContent = mealDateInput.value;
-            loadDailyMeals(currentUser.uid, mealDateInput.value);
-        }
-    });
-
-    async function loadDailyMeals(uid, date) {
-        if (!uid || !date) {
-            dailySummaryContent.innerHTML = "<p>Please log in to see your daily summary.</p>";
-            return;
-        }
-
-        dailySummaryContent.innerHTML = "<p>Loading daily meals...</p>";
-        let totalProteinBlocksToday = 0;
-        let totalCarbBlocksToday = 0;
-        let totalFatBlocksToday = 0;
-
-        try {
-            const q = query(
-                collection(db, "mealLogs"),
-                where("userId", "==", uid),
-                where("date", "==", date),
-                orderBy("timestamp", "asc") 
-            );
+            const q = query(collection(db, "recipes"), orderBy("name", "asc"));
             const querySnapshot = await getDocs(q);
-
-            let mealsHtml = "";
-            if (querySnapshot.empty) {
-                mealsHtml = "<p>No meals logged for this date.</p>";
-            } else {
-                querySnapshot.forEach((doc) => {
-                    const meal = doc.data();
-                    let foodsList = meal.foodsConsumed ? meal.foodsConsumed.map(food => 
-                        `${food.blocks} block(s) of ${food.name}`
-                    ).join(', ') : 'No detailed foods recorded.'; // Handle older entries without detailed foods
-                    
-                    mealsHtml += `
-                        <div class="meal-entry">
-                            <strong>${meal.mealType}</strong> (${meal.proteinBlocks}P/${meal.carbBlocks}C/${meal.fatBlocks}F) - ${foodsList}
-                        </div>
-                    `;
-                    totalProteinBlocksToday += (meal.proteinBlocks || 0); 
-                    totalCarbBlocksToday += (meal.carbBlocks || 0);
-                    totalFatBlocksToday += (meal.fatBlocks || 0);
-                });
-            }
-
-            const dailyGoal = currentUserProfile ? currentUserProfile.dailyBlockGoal : 11; 
-
-            const getMacroSummaryHtml = (macroName, currentBlocks, goal) => {
-                let summaryClass = 'blocks-summary macro-summary ';
-                let message = `${macroName}: ${currentBlocks} / ${goal}`;
-                if (currentBlocks > goal) {
-                    summaryClass += 'error over';
-                    message += ` (+${(currentBlocks - goal).toFixed(1)})`;
-                } else if (currentBlocks < goal) {
-                    summaryClass += 'warning under';
-                    message += ` (${(goal - currentBlocks).toFixed(1)} remaining)`;
-                } else {
-                    summaryClass += 'success on-target';
-                }
-                return `<p class="${summaryClass}">${message}</p>`;
-            };
-
-            const blocksSummaryHtml = `
-                <div class="blocks-summary">
-                    ${getMacroSummaryHtml("Protein", totalProteinBlocksToday, dailyGoal)}
-                    ${getMacroSummaryHtml("Carb", totalCarbBlocksToday, dailyGoal)}
-                    ${getMacroSummaryHtml("Fat", totalFatBlocksToday, dailyGoal)}
-                    <hr>
-                    <p>Daily Macro Goal: ${dailyGoal} blocks each</p>
-                </div>
-            `;
-            dailySummaryContent.innerHTML = blocksSummaryHtml + mealsHtml; 
-
+            const select = document.getElementById('select-recipe');
+            select.innerHTML = '<option value="">-- Select a Recipe --</option>';
+            querySnapshot.forEach((doc) => {
+                const recipe = doc.data();
+                select.add(new Option(recipe.name, JSON.stringify(recipe)));
+            });
         } catch (error) {
-            dailySummaryContent.innerHTML = `<p class="status-message error">Error loading daily meals: ${error.message}</p>`;
-            updateStatus(`Error loading daily meals: ${error.message}`, 'error');
+            updateStatus("Index building for recipes. Please wait 5 mins.", "warning");
         }
     }
 
-
-    // --- ADD NEW FOOD (ONE BY ONE) LOGIC ---
-    document.getElementById('save-new-food-btn').addEventListener('click', async () => {
-        const name = document.getElementById('new-food-name').value.trim();
-        const category = document.getElementById('new-food-category').value;
-        const unit = document.getElementById('new-food-unit').value.trim();
-        const perBlock = parseFloat(document.getElementById('new-food-perblock').value);
-
-        if (!name || !category || !unit || isNaN(perBlock) || perBlock <= 0) {
-            updateStatus("Please fill in all fields correctly to add a new food.", 'warning');
-            return;
-        }
-
-        const newFood = {
-            name: name,
-            category: category,
-            unit: unit,
-            perBlock: perBlock 
-        };
-
-        try {
-            await addDoc(collection(db, "foods"), newFood);
-            updateStatus(`Food "${name}" added successfully!`, 'success');
-            document.getElementById('new-food-name').value = '';
-            document.getElementById('new-food-category').value = '';
-            document.getElementById('new-food-unit').value = '';
-            document.getElementById('new-food-perblock').value = '';
-            loadFoods(); // Reload foods to update dropdowns
-        } catch (error) {
-            updateStatus(`Error adding food: ${error.message}`, 'error');
-        }
-    });
-
-    // --- BULK ADD FOODS LOGIC ---
-    document.getElementById('bulk-add-foods-btn').addEventListener('click', async () => {
-        const bulkDataText = document.getElementById('bulk-food-data').value.trim();
-        if (!bulkDataText) {
-            updateStatus("Please paste JSON food data into the text area.", 'warning');
-            return;
-        }
-
-        let foodList;
-        try {
-            foodList = JSON.parse(bulkDataText);
-            if (!Array.isArray(foodList)) {
-                throw new Error("Pasted data must be a JSON array of food objects.");
-            }
-        } catch (error) {
-            updateStatus(`Error parsing JSON: ${error.message}. Please ensure the format is a valid JSON array.`, 'error');
-            return;
-        }
-
-        let addedCount = 0;
-        let errorCount = 0;
-        let warningMessages = [];
-        const validCategories = ['protein', 'carb', 'fat'];
-
-        for (const food of foodList) {
-            if (
-                typeof food.name !== 'string' || !food.name.trim() ||
-                typeof food.category !== 'string' || !validCategories.includes(food.category) ||
-                typeof food.unit !== 'string' || !food.unit.trim() ||
-                typeof food.perBlock !== 'number' || isNaN(food.perBlock) || food.perBlock <= 0
-            ) {
-                warningMessages.push(`Skipped malformed food entry: ${JSON.stringify(food)}. Missing fields, invalid category, or 'perBlock' not a number > 0.`);
-                errorCount++;
-                continue;
-            }
-
-            try {
-                await addDoc(collection(db, "foods"), {
-                    name: food.name.trim(),
-                    category: food.category,
-                    unit: food.unit.trim(),
-                    perBlock: food.perBlock
-                });
-                addedCount++;
-            } catch (error) {
-                warningMessages.push(`Error adding "${food.name}": ${error.message}`);
-                errorCount++;
-            }
-        }
-
-        if (addedCount > 0) {
-            updateStatus(`Successfully added ${addedCount} foods. ${errorCount} errors/warnings.`, 'success');
-            document.getElementById('bulk-food-data').value = ''; 
-            loadFoods(); 
-        } else {
-            updateStatus(`No foods were added. ${errorCount} errors/warnings.`, 'error');
-        }
-
-        if (warningMessages.length > 0) {
-            const detailMsg = warningMessages.join('\n');
-            alert(`Bulk Add Summary:\nSuccessfully added: ${addedCount}\nErrors/Warnings: ${errorCount}\n\nDetails:\n${detailMsg}`);
-        }
-    });
-
-    // --- RECIPE LOGIC ---
-    let currentRecipeIngredients = []; // Stores ingredients as they are added to the new recipe form
-
-    function renderRecipeIngredients() {
-        const container = document.getElementById('recipe-ingredients-container');
-        container.innerHTML = ''; // Clear previous
-        currentRecipeIngredients.forEach((ing, index) => {
-            const div = document.createElement('div');
-            div.classList.add('recipe-ingredient');
-            div.innerHTML = `
-                <select id="recipe-ing-food-${index}" class="ingredient-food-select"></select>
-                <input type="number" id="recipe-ing-blocks-${index}" value="${ing.blocks}" min="0.5" step="0.5" style="width: 80px;"> blocks
-                <button type="button" class="remove-ingredient" data-index="${index}">X</button>
-            `;
-            container.appendChild(div);
-
-            const foodSelect = div.querySelector(`#recipe-ing-food-${index}`);
-            // Populate based on category of ingredient (or all if not yet defined)
-            const allFoods = [...foodDB.protein, ...foodDB.carb, ...foodDB.fat];
-            allFoods.sort((a, b) => a.name.localeCompare(b.name));
-            foodSelect.innerHTML = '<option value="">-- Select Food --</option>';
-            allFoods.forEach(food => {
-                const option = new Option(food.name, JSON.stringify(food));
-                foodSelect.add(option);
-                if (ing.food.name === food.name && ing.food.category === food.category) { // Match selected food
-                    foodSelect.value = JSON.stringify(food);
-                }
-            });
-
-            // Add event listeners for changes
-            foodSelect.addEventListener('change', (e) => {
-                currentRecipeIngredients[index].food = JSON.parse(e.target.value);
-            });
-            div.querySelector(`#recipe-ing-blocks-${index}`).addEventListener('change', (e) => {
-                currentRecipeIngredients[index].blocks = parseFloat(e.target.value);
-            });
-            div.querySelector(`.remove-ingredient`).addEventListener('click', (e) => {
-                const idxToRemove = parseInt(e.target.dataset.index);
-                currentRecipeIngredients.splice(idxToRemove, 1);
-                renderRecipeIngredients(); // Re-render after removal
-            });
+    document.getElementById('save-new-recipe-btn').addEventListener('click', async () => {
+        const name = document.getElementById('new-recipe-name').value;
+        const ingredients = [];
+        let p = 0, c = 0, f = 0;
+        
+        currentRecipeIngredients.forEach(ing => {
+            ingredients.push({ name: ing.food.name, category: ing.food.category, blocks: ing.blocks });
+            if(ing.food.category === 'protein') p += ing.blocks;
+            if(ing.food.category === 'carb') c += ing.blocks;
+            if(ing.food.category === 'fat') f += ing.blocks;
         });
+
+        await addDoc(collection(db, "recipes"), {
+            name,
+            ingredients,
+            totalProteinBlocks: p,
+            totalCarbBlocks: c,
+            totalFatBlocks: f,
+            createdAt: serverTimestamp()
+        });
+        updateStatus("Global Recipe Saved!", "success");
+        loadRecipes();
+    });
+
+    // Handle Calculation and Logging
+    document.getElementById('calculate-meal-btn').addEventListener('click', async () => {
+        const mealData = {
+            userId: currentUser.uid,
+            date: document.getElementById('meal-date').value,
+            mealType: document.getElementById('meal-type').value,
+            proteinBlocks: parseFloat(document.getElementById('meal-protein-blocks').value),
+            carbBlocks: parseFloat(document.getElementById('meal-carb-blocks').value),
+            fatBlocks: parseFloat(document.getElementById('meal-fat-blocks').value),
+            timestamp: serverTimestamp()
+        };
+        await addDoc(collection(db, "mealLogs"), mealData);
+        updateStatus("Meal Logged!", "success");
+        loadDailyMeals(currentUser.uid, mealData.date);
+    });
+
+    // Daily Summary logic
+    async function loadDailyMeals(uid, date) {
+        const q = query(collection(db, "mealLogs"), where("userId", "==", uid), where("date", "==", date));
+        const snap = await getDocs(q);
+        let p = 0, c = 0, f = 0;
+        let html = "";
+        snap.forEach(doc => {
+            const m = doc.data();
+            p += m.proteinBlocks; c += m.carbBlocks; f += m.fatBlocks;
+            html += `<div class="meal-entry"><strong>${m.mealType}</strong>: ${m.proteinBlocks}P, ${m.carbBlocks}C, ${m.fatBlocks}F</div>`;
+        });
+        const goal = currentUserProfile.dailyBlockGoal;
+        document.getElementById('daily-summary-content').innerHTML = `
+            <p>Protein: ${p}/${goal} | Carb: ${c}/${goal} | Fat: ${f}/${goal}</p>
+            ${html}
+        `;
     }
 
+    // Recipe Ingredients Helper
+    let currentRecipeIngredients = [];
     document.getElementById('add-ingredient-to-recipe-btn').addEventListener('click', () => {
-        currentRecipeIngredients.push({ food: {}, blocks: 1 }); // Default to 1 block
+        const ing = { food: foodDB.protein[0] || {}, blocks: 1 };
+        currentRecipeIngredients.push(ing);
         renderRecipeIngredients();
     });
 
-    document.getElementById('save-new-recipe-btn').addEventListener('click', async () => {
-        const recipeName = document.getElementById('new-recipe-name').value.trim();
-        const recipeDescription = document.getElementById('new-recipe-description').value.trim();
-
-        if (!recipeName) {
-            updateStatus("Recipe name is required.", 'warning');
-            return;
-        }
-        if (currentRecipeIngredients.length === 0) {
-            updateStatus("Please add at least one ingredient to the recipe.", 'warning');
-            return;
-        }
-
-        let totalProteinBlocks = 0;
-        let totalCarbBlocks = 0;
-        let totalFatBlocks = 0;
-        const ingredientsToSave = [];
-        let validationError = false;
-
-        currentRecipeIngredients.forEach(ing => {
-            if (!ing.food || !ing.food.name || isNaN(ing.blocks) || ing.blocks <= 0) {
-                updateStatus(`Recipe ingredient error: Invalid food selected or blocks quantity for an ingredient.`, 'error');
-                validationError = true;
-                return;
-            }
-            ingredientsToSave.push({
-                name: ing.food.name,
-                category: ing.food.category,
-                unit: ing.food.unit,
-                perBlock: ing.food.perBlock, // Store this for reference, though not strictly needed for logging total blocks
-                blocks: ing.blocks // Blocks of this food in the recipe
-            });
-
-            switch (ing.food.category) {
-                case 'protein': totalProteinBlocks += ing.blocks; break;
-                case 'carb': totalCarbBlocks += ing.blocks; break;
-                case 'fat': totalFatBlocks += ing.blocks; break;
-            }
+    function renderRecipeIngredients() {
+        const container = document.getElementById('recipe-ingredients-container');
+        container.innerHTML = "";
+        currentRecipeIngredients.forEach((ing, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<select id="ing-${i}"></select> <input type="number" id="ing-b-${i}" value="1"> blocks`;
+            container.appendChild(div);
+            const sel = div.querySelector('select');
+            [...foodDB.protein, ...foodDB.carb, ...foodDB.fat].forEach(f => sel.add(new Option(f.name, JSON.stringify(f))));
+            sel.addEventListener('change', (e) => currentRecipeIngredients[i].food = JSON.parse(e.target.value));
         });
-
-        if (validationError) return;
-
-        const newRecipe = {
-            name: recipeName,
-            description: recipeDescription,
-            ingredients: ingredientsToSave,
-            totalProteinBlocks: totalProteinBlocks,
-            totalCarbBlocks: totalCarbBlocks,
-            totalFatBlocks: totalFatBlocks,
-            userId: currentUser.uid, // Tie recipe to user
-            createdAt: serverTimestamp()
-        };
-
-        try {
-            await addDoc(collection(db, "recipes"), newRecipe);
-            updateStatus(`Recipe "${recipeName}" added successfully!`, 'success');
-            // Clear form
-            document.getElementById('new-recipe-name').value = '';
-            document.getElementById('new-recipe-description').value = '';
-            currentRecipeIngredients = [];
-            renderRecipeIngredients(); // Clear ingredients list
-            loadRecipes(); // Reload recipes for dropdown
-        } catch (error) {
-            updateStatus(`Error adding recipe: ${error.message}`, 'error');
-        }
-    });
-
-    // Load recipes for the dropdown
-    async function loadRecipes() {
-        try {
-            const q = query(collection(db, "recipes"), where("userId", "==", currentUser.uid), orderBy("name", "asc"));
-            const querySnapshot = await getDocs(q);
-            allRecipes = [];
-            selectRecipeDropdown.innerHTML = '<option value="">-- Select a Recipe --</option>'; // Default empty
-            querySnapshot.forEach((doc) => {
-                const recipe = doc.data();
-                allRecipes.push(recipe);
-                selectRecipeDropdown.add(new Option(recipe.name, JSON.stringify(recipe)));
-            });
-            updateStatus(`Loaded ${allRecipes.length} recipes.`, 'info');
-            renderRecipeIngredients(); // Also call this to populate food dropdowns in new recipe form
-        } catch (error) {
-            updateStatus(`Error loading recipes: ${error.message}`, 'error');
-        }
     }
-</script>
 
+    // Settings
+    document.getElementById('save-settings-btn').addEventListener('click', async () => {
+        const goal = parseInt(document.getElementById('daily-block-goal').value);
+        await updateDoc(doc(db, "users", currentUser.uid), { dailyBlockGoal: goal });
+        currentUserProfile.dailyBlockGoal = goal;
+        updateStatus("Settings Saved", "success");
+    });
+    
+    // Auth & Misc
+    document.getElementById('login-btn').addEventListener('click', () => {
+        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+    });
+    document.getElementById('signup-btn').addEventListener('click', () => {
+        createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+    });
+    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+    document.getElementById('meal-date').value = new Date().toISOString().split('T')[0];
+
+</script>
 </body>
 </html>
