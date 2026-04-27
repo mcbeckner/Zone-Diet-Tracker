@@ -10,7 +10,7 @@
         h1 { text-align: center; color: #333; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
         button:hover { background-color: #218838; }
         .secondary-btn { background-color: #007bff; }
@@ -30,7 +30,8 @@
         .status-message.success { color: green; background-color: #e8f5e9; border: 1px solid green; }
         .status-message.info { color: #555; background-color: #e0f2f7; border: 1px solid #ccc; }
 
-        .add-food-section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .section-divider { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        textarea { min-height: 150px; resize: vertical; }
     </style>
 </head>
 <body>
@@ -77,8 +78,8 @@
         </div>
 
         <!-- ADD NEW FOOD SECTION -->
-        <div class="add-food-section">
-            <h2>Add New Food</h2>
+        <div class="section-divider">
+            <h2>Add New Food (One by One)</h2>
             <div class="form-group">
                 <label for="new-food-name">Food Name</label>
                 <input type="text" id="new-food-name" placeholder="e.g., Ground Beef (90/10)" required>
@@ -102,6 +103,19 @@
             </div>
             <button id="save-new-food-btn" class="secondary-btn">Save New Food</button>
         </div>
+
+        <!-- BULK ADD FOODS SECTION -->
+        <div class="section-divider">
+            <h2>Bulk Add Foods</h2>
+            <p>Paste a JSON array of food objects below. Each object should have 'name', 'category' (protein, carb, fat), 'unit', and 'perBlock'.</p>
+            <p>Example: <code>[{"name":"Broccoli","category":"carb","unit":"cups","perBlock":1.25}, {"name":"Olive Oil","category":"fat","unit":"tsp","perBlock":0.33}]</code></p>
+            <div class="form-group">
+                <label for="bulk-food-data">JSON Food Data</label>
+                <textarea id="bulk-food-data" placeholder='[{"name":"Example Protein","category":"protein","unit":"g","perBlock":20}]'></textarea>
+            </div>
+            <button id="bulk-add-foods-btn" class="secondary-btn">Bulk Add Foods</button>
+        </div>
+
     </div>
 </div>
 
@@ -109,10 +123,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
-    // ADDED addDoc FOR WRITING TO FIRESTORE
     import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    // YOUR EMBEDDED FIREBASE CONFIG (Use the latest config you provided)
+    // YOUR EMBEDDED FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyDM47EtYj-yzw7ryBh-8xr3KQ7D6Sz4pP0",
       authDomain: "zonediettracker.firebaseapp.com",
@@ -218,6 +231,7 @@
 
             querySnapshot.forEach((doc) => {
                 const food = doc.data();
+                // Add an explicit check for the food data structure here
                 if (!food.name || !food.category || typeof food.perBlock !== 'number' || !food.unit) {
                     updateStatus(`Warning: Skipping malformed food document (ID: ${doc.id}). Missing fields or incorrect 'perBlock' type (expected number).`, 'warning');
                     return; 
@@ -292,7 +306,7 @@
         updateStatus("Meal calculated!", 'success');
     });
 
-    // --- ADD NEW FOOD LOGIC ---
+    // --- ADD NEW FOOD (ONE BY ONE) LOGIC ---
     document.getElementById('save-new-food-btn').addEventListener('click', async () => {
         const name = document.getElementById('new-food-name').value.trim();
         const category = document.getElementById('new-food-category').value;
@@ -308,7 +322,7 @@
             name: name,
             category: category,
             unit: unit,
-            perBlock: perBlock // This will automatically be stored as a 'double' in Firestore
+            perBlock: perBlock 
         };
 
         try {
@@ -323,6 +337,73 @@
             loadFoods();
         } catch (error) {
             updateStatus(`Error adding food: ${error.message}`, 'error');
+        }
+    });
+
+    // --- BULK ADD FOODS LOGIC ---
+    document.getElementById('bulk-add-foods-btn').addEventListener('click', async () => {
+        const bulkDataText = document.getElementById('bulk-food-data').value.trim();
+        if (!bulkDataText) {
+            updateStatus("Please paste JSON food data into the text area.", 'warning');
+            return;
+        }
+
+        let foodList;
+        try {
+            foodList = JSON.parse(bulkDataText);
+            if (!Array.isArray(foodList)) {
+                throw new Error("Pasted data must be a JSON array of food objects.");
+            }
+        } catch (error) {
+            updateStatus(`Error parsing JSON: ${error.message}. Please ensure the format is a valid JSON array.`, 'error');
+            return;
+        }
+
+        let addedCount = 0;
+        let errorCount = 0;
+        let warningMessages = [];
+        const validCategories = ['protein', 'carb', 'fat'];
+
+        for (const food of foodList) {
+            // Validate each food item
+            if (
+                typeof food.name !== 'string' || !food.name.trim() ||
+                typeof food.category !== 'string' || !validCategories.includes(food.category) ||
+                typeof food.unit !== 'string' || !food.unit.trim() ||
+                typeof food.perBlock !== 'number' || isNaN(food.perBlock) || food.perBlock <= 0
+            ) {
+                warningMessages.push(`Skipped malformed food entry: ${JSON.stringify(food)}. Missing fields, invalid category, or 'perBlock' not a number > 0.`);
+                errorCount++;
+                continue;
+            }
+
+            try {
+                // Add the food to Firestore
+                await addDoc(collection(db, "foods"), {
+                    name: food.name.trim(),
+                    category: food.category,
+                    unit: food.unit.trim(),
+                    perBlock: food.perBlock
+                });
+                addedCount++;
+            } catch (error) {
+                warningMessages.push(`Error adding "${food.name}": ${error.message}`);
+                errorCount++;
+            }
+        }
+
+        if (addedCount > 0) {
+            updateStatus(`Successfully added ${addedCount} foods. ${errorCount} errors/warnings.`, 'success');
+            document.getElementById('bulk-food-data').value = ''; // Clear textarea
+            loadFoods(); // Refresh dropdowns
+        } else {
+            updateStatus(`No foods were added. ${errorCount} errors/warnings.`, 'error');
+        }
+
+        if (warningMessages.length > 0) {
+            // Display detailed warnings
+            const detailMsg = warningMessages.join('\n');
+            alert(`Bulk Add Summary:\nSuccessfully added: ${addedCount}\nErrors/Warnings: ${errorCount}\n\nDetails:\n${detailMsg}`);
         }
     });
 
