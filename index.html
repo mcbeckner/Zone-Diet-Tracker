@@ -43,6 +43,7 @@
         .blocks-summary.over { color: red; }
         .blocks-summary.under { color: orange; }
         .blocks-summary.on-target { color: green; }
+        .blocks-summary.macro-summary { font-size: 0.9em; margin-left: 10px; } /* For individual macro lines */
 
     </style>
 </head>
@@ -76,7 +77,7 @@
         <div class="section-divider">
             <h2>Your Settings</h2>
             <div class="form-group">
-                <label for="daily-block-goal">Daily Block Goal</label>
+                <label for="daily-block-goal">Daily Block Goal (for EACH: Protein, Carb, Fat)</label>
                 <input type="number" id="daily-block-goal" value="11" min="1" max="30">
             </div>
             <button id="save-settings-btn" class="secondary-btn">Save Settings</button>
@@ -93,6 +94,7 @@
         <!-- MEAL LOGGER -->
         <div class="section-divider">
             <h2>Log a Meal</h2>
+            <p>Select your protein, carb, and fat sources below. "How many blocks" refers to a complete P+C+F block set.</p>
             <div class="form-group">
                 <label for="meal-date">Date</label>
                 <input type="date" id="meal-date">
@@ -108,12 +110,12 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>How many blocks is this meal?</label>
+                <label>How many P+C+F blocks are in this meal?</label>
                 <input type="number" id="blocks" value="3" min="1" max="10">
             </div>
-            <div class="form-group"><label>Protein</label><select id="protein"></select></div>
-            <div class="form-group"><label>Carb</label><select id="carb"></select></div>
-            <div class="form-group"><label>Fat</label><select id="fat"></select></div>
+            <div class="form-group"><label>Protein Source</label><select id="protein"></select></div>
+            <div class="form-group"><label>Carb Source</label><select id="carb"></select></div>
+            <div class="form-group"><label>Fat Source</label><select id="fat"></select></div>
             
             <button id="calculate-meal-btn">Calculate Meal</button>
             
@@ -170,7 +172,6 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
-    // ADDED getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp FOR MEAL LOGGING AND USER PROFILES
     import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
     // YOUR EMBEDDED FIREBASE CONFIG
@@ -241,7 +242,7 @@
             // Load foods and daily logs concurrently
             await Promise.all([
                 loadFoods(),
-                loadDailyMeals(user.uid, getTodayDateString())
+                loadDailyMeals(user.uid, mealDateInput.value) // Load for the selected date (default today)
             ]);
             updateStatus("All data loaded. Ready!", 'success');
 
@@ -259,13 +260,13 @@
 
         if (userDocSnap.exists()) {
             currentUserProfile = userDocSnap.data();
-            dailyBlockGoalInput.value = currentUserProfile.dailyBlockGoal || 11; // Default if not set
+            dailyBlockGoalInput.value = currentUserProfile.dailyBlockGoal || 11; 
             updateStatus("User profile loaded.", 'info');
         } else {
             // Create a default profile for new users
             currentUserProfile = {
                 email: currentUser.email,
-                dailyBlockGoal: 11, // Default goal
+                dailyBlockGoal: 11, // Default goal for EACH macro
                 createdAt: serverTimestamp()
             };
             await setDoc(userDocRef, currentUserProfile);
@@ -280,7 +281,7 @@
             // Create user profile immediately after signup
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 email: userCredential.user.email,
-                dailyBlockGoal: 11,
+                dailyBlockGoal: 11, // Default goal for EACH macro
                 createdAt: serverTimestamp()
             });
             updateStatus("Signed up and logged in!", 'success');
@@ -323,7 +324,7 @@
         try {
             await updateDoc(doc(db, "users", currentUser.uid), { dailyBlockGoal: newGoal });
             currentUserProfile.dailyBlockGoal = newGoal; // Update local state
-            updateStatus("Daily block goal updated successfully!", 'success');
+            updateStatus("Daily block goal (for each macro) updated successfully!", 'success');
             loadDailyMeals(currentUser.uid, mealDateInput.value); // Recalculate summary if goal changed
         } catch (error) {
             updateStatus(`Error saving settings: ${error.message}`, 'error');
@@ -398,7 +399,6 @@
         dataArray.sort((a, b) => a.name.localeCompare(b.name));
         select.innerHTML = '<option value="">-- Select --</option>'; 
         dataArray.forEach((food, index) => {
-            // Store original index in dataArray, not just its name for lookup
             select.add(new Option(food.name, foodDB[categoryId].indexOf(food))); 
         });
     }
@@ -433,21 +433,24 @@
         const fatAmount = (f.perBlock * blocksCount).toFixed(2);
 
         document.getElementById("meal-output").innerHTML = `
-            <strong>Protein:</strong> ${proteinAmount} ${p.unit} of ${p.name} <br>
-            <strong>Carb:</strong> ${carbAmount} ${c.unit} of ${c.name} <br>
-            <strong>Fat:</strong> ${fatAmount} ${f.unit} of ${f.name}
+            <strong>Protein:</strong> ${proteinAmount} ${p.unit} of ${p.name} (${blocksCount} blocks)<br>
+            <strong>Carb:</strong> ${carbAmount} ${c.unit} of ${c.name} (${blocksCount} blocks)<br>
+            <strong>Fat:</strong> ${fatAmount} ${f.unit} of ${f.name} (${blocksCount} blocks)
         `;
         document.getElementById("meal-calculation-result").style.display = "block";
         updateStatus("Meal calculated! Click 'Log This Meal' to save.", 'info');
 
-        // Store the calculated meal details for logging
+        // Store the calculated meal details for logging, explicitly breaking down blocks
         calculatedMeal = {
             foods: [
                 { name: p.name, category: 'protein', blocks: blocksCount, unit: p.unit, perBlock: p.perBlock },
                 { name: c.name, category: 'carb', blocks: blocksCount, unit: c.unit, perBlock: c.perBlock },
                 { name: f.name, category: 'fat', blocks: blocksCount, unit: f.unit, perBlock: f.perBlock }
             ],
-            totalBlocks: blocksCount * 3 // Since it's a 3-block meal (p, c, f each count for 1 block towards the "meal blocks")
+            // Store individual macro blocks for easier aggregation later
+            mealProteinBlocks: blocksCount,
+            mealCarbBlocks: blocksCount,
+            mealFatBlocks: blocksCount
         };
     });
 
@@ -471,7 +474,9 @@
                 date: mealDate,
                 mealType: mealType,
                 foodsConsumed: calculatedMeal.foods,
-                totalMealBlocks: calculatedMeal.totalBlocks,
+                proteinBlocks: calculatedMeal.mealProteinBlocks,
+                carbBlocks: calculatedMeal.mealCarbBlocks,
+                fatBlocks: calculatedMeal.mealFatBlocks,
                 timestamp: serverTimestamp() // For ordering and audit
             });
             updateStatus("Meal logged successfully!", 'success');
@@ -485,6 +490,13 @@
     });
 
     // --- DAILY MEAL LOGS DISPLAY LOGIC ---
+    mealDateInput.addEventListener('change', () => {
+        if (currentUser && currentUser.uid) {
+            document.getElementById('current-date').textContent = mealDateInput.value;
+            loadDailyMeals(currentUser.uid, mealDateInput.value);
+        }
+    });
+
     async function loadDailyMeals(uid, date) {
         if (!uid || !date) {
             dailySummaryContent.innerHTML = "<p>Please log in to see your daily summary.</p>";
@@ -492,54 +504,68 @@
         }
 
         dailySummaryContent.innerHTML = "<p>Loading daily meals...</p>";
-        let totalBlocksToday = 0;
+        let totalProteinBlocksToday = 0;
+        let totalCarbBlocksToday = 0;
+        let totalFatBlocksToday = 0;
 
         try {
             const q = query(
                 collection(db, "mealLogs"),
                 where("userId", "==", uid),
                 where("date", "==", date),
-                orderBy("timestamp", "asc") // Order by when they were logged
+                orderBy("timestamp", "asc") 
             );
             const querySnapshot = await getDocs(q);
 
+            let mealsHtml = "";
             if (querySnapshot.empty) {
-                dailySummaryContent.innerHTML = "<p>No meals logged for this date.</p>";
+                mealsHtml = "<p>No meals logged for this date.</p>";
             } else {
-                let mealsHtml = "";
                 querySnapshot.forEach((doc) => {
                     const meal = doc.data();
                     let foodsList = meal.foodsConsumed.map(food => 
-                        `${food.blocks} block(s) of ${food.name} (${food.unit} per block: ${food.perBlock})`
+                        `${food.blocks} block(s) of ${food.name}`
                     ).join(', ');
                     
                     mealsHtml += `
                         <div class="meal-entry">
-                            <strong>${meal.mealType}</strong> (${meal.totalMealBlocks} blocks) - ${foodsList}
+                            <strong>${meal.mealType}</strong> (${meal.proteinBlocks}P/${meal.carbBlocks}C/${meal.fatBlocks}F) - ${foodsList}
                         </div>
                     `;
-                    totalBlocksToday += meal.totalMealBlocks;
+                    totalProteinBlocksToday += (meal.proteinBlocks || 0); // Add 0 if undefined to prevent NaN
+                    totalCarbBlocksToday += (meal.carbBlocks || 0);
+                    totalFatBlocksToday += (meal.fatBlocks || 0);
                 });
-                dailySummaryContent.innerHTML = mealsHtml;
             }
 
-            // Display total blocks vs. goal
-            const dailyGoal = currentUserProfile ? currentUserProfile.dailyBlockGoal : 11; // Use actual goal or default
-            let summaryClass = 'blocks-summary info';
-            if (totalBlocksToday > dailyGoal + 1) { // +1 for a small buffer
-                summaryClass = 'blocks-summary error over';
-            } else if (totalBlocksToday < dailyGoal - 1) { // -1 for a small buffer
-                summaryClass = 'blocks-summary warning under';
-            } else {
-                summaryClass = 'blocks-summary success on-target';
-            }
+            // Display total blocks vs. goal for each macro
+            const dailyGoal = currentUserProfile ? currentUserProfile.dailyBlockGoal : 11; // Goal for EACH macro
+
+            const getMacroSummaryHtml = (macroName, currentBlocks, goal) => {
+                let summaryClass = 'blocks-summary macro-summary ';
+                let message = `${macroName}: ${currentBlocks} / ${goal}`;
+                if (currentBlocks > goal) {
+                    summaryClass += 'error over';
+                    message += ` (+${currentBlocks - goal})`;
+                } else if (currentBlocks < goal) {
+                    summaryClass += 'warning under';
+                    message += ` (${goal - currentBlocks} remaining)`;
+                } else {
+                    summaryClass += 'success on-target';
+                }
+                return `<p class="${summaryClass}">${message}</p>`;
+            };
 
             const blocksSummaryHtml = `
-                <p class="${summaryClass}">Total Blocks Today: ${totalBlocksToday} / ${dailyGoal}</p>
-                <p>${totalBlocksToday > dailyGoal ? `You are ${totalBlocksToday - dailyGoal} blocks over your goal.` : ''}</p>
-                <p>${totalBlocksToday < dailyGoal ? `You have ${dailyGoal - totalBlocksToday} blocks remaining.` : ''}</p>
+                <div class="blocks-summary">
+                    ${getMacroSummaryHtml("Protein", totalProteinBlocksToday, dailyGoal)}
+                    ${getMacroSummaryHtml("Carb", totalCarbBlocksToday, dailyGoal)}
+                    ${getMacroSummaryHtml("Fat", totalFatBlocksToday, dailyGoal)}
+                    <hr>
+                    <p>Daily Macro Goal: ${dailyGoal} blocks each</p>
+                </div>
             `;
-            dailySummaryContent.insertAdjacentHTML('afterbegin', blocksSummaryHtml); // Add at the top
+            dailySummaryContent.innerHTML = blocksSummaryHtml + mealsHtml; // Add summary at the top
 
         } catch (error) {
             dailySummaryContent.innerHTML = `<p class="status-message error">Error loading daily meals: ${error.message}</p>`;
