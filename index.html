@@ -29,6 +29,8 @@
         .status-message.warning { color: orange; background-color: #fff8e1; border: 1px solid orange; }
         .status-message.success { color: green; background-color: #e8f5e9; border: 1px solid green; }
         .status-message.info { color: #555; background-color: #e0f2f7; border: 1px solid #ccc; }
+
+        .add-food-section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
     </style>
 </head>
 <body>
@@ -57,6 +59,8 @@
         <button id="logout-btn" class="logout-btn">Log Out</button>
         <hr>
         
+        <!-- MEAL CALCULATOR -->
+        <h2>Meal Calculator</h2>
         <div class="form-group">
             <label>How many blocks is this meal?</label>
             <input type="number" id="blocks" value="3" min="1" max="10">
@@ -71,6 +75,33 @@
             <h3>Your Meal Plan:</h3>
             <p id="meal-output"></p>
         </div>
+
+        <!-- ADD NEW FOOD SECTION -->
+        <div class="add-food-section">
+            <h2>Add New Food</h2>
+            <div class="form-group">
+                <label for="new-food-name">Food Name</label>
+                <input type="text" id="new-food-name" placeholder="e.g., Ground Beef (90/10)" required>
+            </div>
+            <div class="form-group">
+                <label for="new-food-category">Category</label>
+                <select id="new-food-category" required>
+                    <option value="">Select Category</option>
+                    <option value="protein">Protein</option>
+                    <option value="carb">Carbohydrate</option>
+                    <option value="fat">Fat</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="new-food-unit">Unit</label>
+                <input type="text" id="new-food-unit" placeholder="e.g., oz, cup, tbsp, medium, nuts" required>
+            </div>
+            <div class="form-group">
+                <label for="new-food-perblock">Amount per 1 Block (e.g., 1 for 1oz protein, 0.5 for 0.5 medium carb)</label>
+                <input type="number" id="new-food-perblock" step="0.01" min="0.01" placeholder="e.g., 1, 0.5, 3" required>
+            </div>
+            <button id="save-new-food-btn" class="secondary-btn">Save New Food</button>
+        </div>
     </div>
 </div>
 
@@ -78,9 +109,10 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    // ADDED addDoc FOR WRITING TO FIRESTORE
+    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    // YOUR EMBEDDED FIREBASE CONFIG
+    // YOUR EMBEDDED FIREBASE CONFIG (Use the latest config you provided)
     const firebaseConfig = {
       apiKey: "AIzaSyDM47EtYj-yzw7ryBh-8xr3KQ7D6Sz4pP0",
       authDomain: "zonediettracker.firebaseapp.com",
@@ -165,7 +197,14 @@
             
             if (querySnapshot.empty) {
                 updateStatus("Firebase query returned an EMPTY result for 'foods' collection. No documents found.", 'warning');
-                return; // Exit if no documents
+                // Ensure dropdowns are cleared/disabled if no foods are found
+                document.getElementById("protein").innerHTML = "";
+                document.getElementById("carb").innerHTML = "";
+                document.getElementById("fat").innerHTML = "";
+                populateSelect("protein", []);
+                populateSelect("carb", []);
+                populateSelect("fat", []);
+                return; 
             }
 
             updateStatus(`Firebase query found ${querySnapshot.docs.length} food documents. Processing...`, 'info');
@@ -179,10 +218,9 @@
 
             querySnapshot.forEach((doc) => {
                 const food = doc.data();
-                // Add an explicit check for the food data structure here
                 if (!food.name || !food.category || typeof food.perBlock !== 'number' || !food.unit) {
                     updateStatus(`Warning: Skipping malformed food document (ID: ${doc.id}). Missing fields or incorrect 'perBlock' type (expected number).`, 'warning');
-                    return; // Skip this document if data is bad
+                    return; 
                 }
 
                 if(foodDB[food.category]) {
@@ -217,6 +255,9 @@
             return;
         }
         select.disabled = false;
+        // Sort alphabetically
+        dataArray.sort((a, b) => a.name.localeCompare(b.name));
+        select.innerHTML = '<option value="">-- Select --</option>'; // Add a default "Select" option
         dataArray.forEach((food, index) => {
             select.add(new Option(food.name, index));
         });
@@ -250,6 +291,41 @@
         document.getElementById("result-box").style.display = "block";
         updateStatus("Meal calculated!", 'success');
     });
+
+    // --- ADD NEW FOOD LOGIC ---
+    document.getElementById('save-new-food-btn').addEventListener('click', async () => {
+        const name = document.getElementById('new-food-name').value.trim();
+        const category = document.getElementById('new-food-category').value;
+        const unit = document.getElementById('new-food-unit').value.trim();
+        const perBlock = parseFloat(document.getElementById('new-food-perblock').value);
+
+        if (!name || !category || !unit || isNaN(perBlock) || perBlock <= 0) {
+            updateStatus("Please fill in all fields correctly to add a new food.", 'warning');
+            return;
+        }
+
+        const newFood = {
+            name: name,
+            category: category,
+            unit: unit,
+            perBlock: perBlock // This will automatically be stored as a 'double' in Firestore
+        };
+
+        try {
+            await addDoc(collection(db, "foods"), newFood);
+            updateStatus(`Food "${name}" added successfully!`, 'success');
+            // Clear form fields
+            document.getElementById('new-food-name').value = '';
+            document.getElementById('new-food-category').value = '';
+            document.getElementById('new-food-unit').value = '';
+            document.getElementById('new-food-perblock').value = '';
+            // Reload foods to update dropdowns
+            loadFoods();
+        } catch (error) {
+            updateStatus(`Error adding food: ${error.message}`, 'error');
+        }
+    });
+
 </script>
 
 </body>
