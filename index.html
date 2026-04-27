@@ -10,106 +10,145 @@
         h1 { text-align: center; color: #333; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
         button:hover { background-color: #218838; }
+        .secondary-btn { background-color: #007bff; }
+        .secondary-btn:hover { background-color: #0069d9; }
+        .logout-btn { background-color: #dc3545; }
         .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
+        #app-section, #login-section { display: none; } /* Hidden by default */
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Meal Builder</h1>
+    <h1 id="header-title">Zone Tracker Login</h1>
     
-    <div class="form-group">
-        <label for="blocks">How many blocks is this meal?</label>
-        <input type="number" id="blocks" value="3" min="1" max="10">
+    <!-- LOGIN SECTION -->
+    <div id="login-section">
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="Enter email">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Enter password">
+        </div>
+        <button id="login-btn">Log In</button>
+        <button id="signup-btn" class="secondary-btn">Sign Up</button>
+        <p id="auth-error" style="color: red; text-align: center;"></p>
     </div>
 
-    <div class="form-group">
-        <label for="protein">Select Protein (1 Block = 7g)</label>
-        <select id="protein"></select>
-    </div>
-
-    <div class="form-group">
-        <label for="carb">Select Carb (1 Block = 9g)</label>
-        <select id="carb"></select>
-    </div>
-
-    <div class="form-group">
-        <label for="fat">Select Fat (1 Block = 1.5g)</label>
-        <select id="fat"></select>
-    </div>
-
-    <button onclick="calculateMeal()">Calculate Meal</button>
-
-    <div class="result" id="result-box" style="display:none;">
-        <h3>Your Meal Plan:</h3>
-        <p id="meal-output"></p>
+    <!-- MAIN APP SECTION -->
+    <div id="app-section">
+        <p>Welcome! <span id="user-email"></span></p>
+        <button id="logout-btn" class="logout-btn">Log Out</button>
+        <hr>
+        
+        <div class="form-group">
+            <label>How many blocks is this meal?</label>
+            <input type="number" id="blocks" value="3" min="1" max="10">
+        </div>
+        <div class="form-group"><label>Protein</label><select id="protein"></select></div>
+        <div class="form-group"><label>Carb</label><select id="carb"></select></div>
+        <div class="form-group"><label>Fat</label><select id="fat"></select></div>
+        
+        <button id="calculate-btn">Calculate Meal</button>
+        
+        <div class="result" id="result-box" style="display:none;">
+            <h3>Your Meal Plan:</h3>
+            <p id="meal-output"></p>
+        </div>
     </div>
 </div>
 
-<script>
-    // 1. Food Database (Master Repository Simulation)
-    // "perBlock" is the amount of that food needed to fulfill 1 Zone Block.
+<!-- FIREBASE SDKS (Using modules) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+
+    // REPLACE THIS WITH YOUR EXACT FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDUM4wlGmfE5QJtBiY82NqkUkb-BQ15Ptc",
+  authDomain: "zone-diet-tracker.firebaseapp.com",
+  projectId: "zone-diet-tracker",
+  storageBucket: "zone-diet-tracker.firebasestorage.app",
+  messagingSenderId: "527744480772",
+  appId: "1:527744480772:web:c29c569b9811b8116a2751"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // DOM Elements
+    const loginSection = document.getElementById('login-section');
+    const appSection = document.getElementById('app-section');
+    const headerTitle = document.getElementById('header-title');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const authError = document.getElementById('auth-error');
+
+    // Auth State Listener (Checks if logged in)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loginSection.style.display = 'none';
+            appSection.style.display = 'block';
+            headerTitle.innerText = "Meal Builder";
+            document.getElementById('user-email').innerText = user.email;
+        } else {
+            loginSection.style.display = 'block';
+            appSection.style.display = 'none';
+            headerTitle.innerText = "Zone Tracker Login";
+        }
+    });
+
+    // Sign Up
+    document.getElementById('signup-btn').addEventListener('click', () => {
+        createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+            .catch(error => authError.innerText = error.message);
+    });
+
+    // Log In
+    document.getElementById('login-btn').addEventListener('click', () => {
+        signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+            .catch(error => authError.innerText = error.message);
+    });
+
+    // Log Out
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        signOut(auth);
+    });
+
+    // --- MEAL CALCULATOR LOGIC (Still hardcoded for now) ---
     const foodDB = {
-        protein: [
-            { name: "Chicken Breast", unit: "oz", perBlock: 1 },
-            { name: "Whole Egg", unit: "large", perBlock: 1 },
-            { name: "Cottage Cheese", unit: "cup", perBlock: 0.25 }
-        ],
-        carb: [
-            { name: "Apple", unit: "medium", perBlock: 0.5 },
-            { name: "Broccoli", unit: "cups", perBlock: 1.25 },
-            { name: "Oatmeal (cooked)", unit: "cup", perBlock: 0.33 }
-        ],
-        fat: [
-            { name: "Almonds", unit: "nuts", perBlock: 3 },
-            { name: "Olive Oil", unit: "tsp", perBlock: 0.33 },
-            { name: "Avocado", unit: "tbsp", perBlock: 1 }
-        ]
+        protein: [{ name: "Chicken Breast", unit: "oz", perBlock: 1 }, { name: "Whole Egg", unit: "large", perBlock: 1 }],
+        carb: [{ name: "Apple", unit: "medium", perBlock: 0.5 }, { name: "Broccoli", unit: "cups", perBlock: 1.25 }],
+        fat: [{ name: "Almonds", unit: "nuts", perBlock: 3 }, { name: "Olive Oil", unit: "tsp", perBlock: 0.33 }]
     };
 
-    // 2. Populate Dropdowns
     function populateSelect(categoryId, dataArray) {
-        const selectElement = document.getElementById(categoryId);
-        dataArray.forEach((food, index) => {
-            const option = document.createElement("option");
-            option.value = index; 
-            option.text = food.name;
-            selectElement.appendChild(option);
-        });
+        const select = document.getElementById(categoryId);
+        dataArray.forEach((food, index) => select.add(new Option(food.name, index)));
     }
-
     populateSelect("protein", foodDB.protein);
     populateSelect("carb", foodDB.carb);
     populateSelect("fat", foodDB.fat);
 
-    // 3. Calculation Logic
-    function calculateMeal() {
+    document.getElementById('calculate-btn').addEventListener('click', () => {
         const blocks = parseFloat(document.getElementById("blocks").value);
-        
-        const pIndex = document.getElementById("protein").value;
-        const cIndex = document.getElementById("carb").value;
-        const fIndex = document.getElementById("fat").value;
+        const p = foodDB.protein[document.getElementById("protein").value];
+        const c = foodDB.carb[document.getElementById("carb").value];
+        const f = foodDB.fat[document.getElementById("fat").value];
 
-        const selectedProtein = foodDB.protein[pIndex];
-        const selectedCarb = foodDB.carb[cIndex];
-        const selectedFat = foodDB.fat[fIndex];
-
-        const pAmount = (selectedProtein.perBlock * blocks).toFixed(2);
-        const cAmount = (selectedCarb.perBlock * blocks).toFixed(2);
-        const fAmount = (selectedFat.perBlock * blocks).toFixed(2);
-
-        const resultText = `
-            <strong>Protein:</strong> ${pAmount} ${selectedProtein.unit} of ${selectedProtein.name} <br>
-            <strong>Carb:</strong> ${cAmount} ${selectedCarb.unit} of ${selectedCarb.name} <br>
-            <strong>Fat:</strong> ${fAmount} ${selectedFat.unit} of ${selectedFat.name}
+        document.getElementById("meal-output").innerHTML = `
+            <strong>Protein:</strong> ${(p.perBlock * blocks).toFixed(2)} ${p.unit} of ${p.name} <br>
+            <strong>Carb:</strong> ${(c.perBlock * blocks).toFixed(2)} ${c.unit} of ${c.name} <br>
+            <strong>Fat:</strong> ${(f.perBlock * blocks).toFixed(2)} ${f.unit} of ${f.name}
         `;
-
-        document.getElementById("meal-output").innerHTML = resultText;
         document.getElementById("result-box").style.display = "block";
-    }
+    });
 </script>
 
 </body>
