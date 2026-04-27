@@ -18,6 +18,17 @@
         .logout-btn { background-color: #dc3545; }
         #app-section, #login-section { display: none; } /* Hidden by default */
         .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
+        .status-message { 
+            text-align: center; 
+            margin-top: 10px; 
+            padding: 5px; 
+            border-radius: 4px; 
+            font-size: 0.9em; 
+        }
+        .status-message.error { color: red; background-color: #ffe0e0; border: 1px solid red; }
+        .status-message.warning { color: orange; background-color: #fff8e1; border: 1px solid orange; }
+        .status-message.success { color: green; background-color: #e8f5e9; border: 1px solid green; }
+        .status-message.info { color: #555; background-color: #e0f2f7; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -71,13 +82,12 @@
 
     // YOUR EMBEDDED FIREBASE CONFIG
     const firebaseConfig = {
-      apiKey: "AIzaSyDUM4wlGmfE5QJtBiY82NqkUkb-BQ15Ptc",
-      authDomain: "zone-diet-tracker.firebaseapp.com",
-      databaseURL: "https://zone-diet-tracker-default-rtdb.firebaseio.com",
-      projectId: "zonediet",
-      storageBucket: "zone-diet-tracker.firebasestorage.app",
-      messagingSenderId: "527744480772",
-      appId: "1:527744480772:web:c29c569b9811b8116a2751"
+      apiKey: "AIzaSyDM47EtYj-yzw7ryBh-8xr3KQ7D6Sz4pP0",
+      authDomain: "zonediettracker.firebaseapp.com",
+      projectId: "zonediettracker",
+      storageBucket: "zonediettracker.firebasestorage.app",
+      messagingSenderId: "167080077633",
+      appId: "1:167080077633:web:7761e0850292d7f51f99c0"
     };
 
     // Initialize Firebase
@@ -93,17 +103,14 @@
     const passwordInput = document.getElementById('password');
     const authError = document.getElementById('auth-error');
     
-    // New element for status messages
+    // Status message element
     const statusMessage = document.createElement('p'); 
-    statusMessage.style.textAlign = 'center';
-    statusMessage.style.marginTop = '10px';
-    statusMessage.style.color = '#555';
+    statusMessage.classList.add('status-message');
     document.querySelector('.container').appendChild(statusMessage);
 
-    function updateStatus(message, isError = false) {
+    function updateStatus(message, type = 'info') { // type can be 'info', 'success', 'warning', 'error'
         statusMessage.textContent = message;
-        statusMessage.style.color = isError ? 'red' : '#555';
-        // console.log("STATUS:", message); // Keep this for when you can access console
+        statusMessage.className = 'status-message ' + type;
     }
 
     // Auth State Listener
@@ -113,39 +120,39 @@
             appSection.style.display = 'block';
             headerTitle.innerText = "Meal Builder";
             document.getElementById('user-email').innerText = user.email;
-            updateStatus("Logged in successfully. Loading foods...");
+            updateStatus("Logged in successfully. Loading foods...", 'info');
             loadFoods(); // Load foods from database when logged in
         } else {
             loginSection.style.display = 'block';
             appSection.style.display = 'none';
             headerTitle.innerText = "Zone Tracker Login";
-            updateStatus("Please log in or sign up.");
+            updateStatus("Please log in or sign up.", 'info');
         }
     });
 
     // Auth functions
     document.getElementById('signup-btn').addEventListener('click', () => {
         createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-            .then(() => updateStatus("Signed up and logged in!", false))
+            .then(() => updateStatus("Signed up and logged in!", 'success'))
             .catch(error => {
                 authError.innerText = error.message;
-                updateStatus(`Signup error: ${error.message}`, true);
+                updateStatus(`Signup error: ${error.message}`, 'error');
             });
     });
 
     document.getElementById('login-btn').addEventListener('click', () => {
         signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-            .then(() => updateStatus("Logged in!", false))
+            .then(() => updateStatus("Logged in!", 'success'))
             .catch(error => {
                 authError.innerText = error.message;
-                updateStatus(`Login error: ${error.message}`, true);
+                updateStatus(`Login error: ${error.message}`, 'error');
             });
     });
 
     document.getElementById('logout-btn').addEventListener('click', () => {
         signOut(auth)
-            .then(() => updateStatus("Logged out.", false))
-            .catch(error => updateStatus(`Logout error: ${error.message}`, true));
+            .then(() => updateStatus("Logged out.", 'info'))
+            .catch(error => updateStatus(`Logout error: ${error.message}`, 'error'));
     });
 
     // --- DATABASE LOGIC ---
@@ -153,29 +160,35 @@
 
     async function loadFoods() {
         try {
+            updateStatus("Attempting to load foods from Firestore...", 'info');
             const querySnapshot = await getDocs(collection(db, "foods"));
-            updateStatus(`Found ${querySnapshot.docs.length} food documents.`);
             
-            foodDB = { protein: [], carb: [], fat: [] }; // Reset arrays
+            if (querySnapshot.empty) {
+                updateStatus("Firebase query returned an EMPTY result for 'foods' collection. No documents found.", 'warning');
+                return; // Exit if no documents
+            }
+
+            updateStatus(`Firebase query found ${querySnapshot.docs.length} food documents. Processing...`, 'info');
+            
+            foodDB = { protein: [], carb: [] , fat: [] }; // Reset arrays
             
             // Clear old dropdowns
             document.getElementById("protein").innerHTML = "";
             document.getElementById("carb").innerHTML = "";
             document.getElementById("fat").innerHTML = "";
 
-            if (querySnapshot.empty) {
-                updateStatus("No food documents found in 'foods' collection.", true);
-                return;
-            }
-
             querySnapshot.forEach((doc) => {
                 const food = doc.data();
-                // Check if food.category exists and is one of our expected types
+                // Add an explicit check for the food data structure here
+                if (!food.name || !food.category || typeof food.perBlock !== 'number' || !food.unit) {
+                    updateStatus(`Warning: Skipping malformed food document (ID: ${doc.id}). Missing fields or incorrect 'perBlock' type (expected number).`, 'warning');
+                    return; // Skip this document if data is bad
+                }
+
                 if(foodDB[food.category]) {
                     foodDB[food.category].push(food);
-                    // updateStatus(`Added ${food.name} to ${food.category} category.`); // Too verbose for general status
                 } else {
-                    updateStatus(`Warning: Food '${food.name}' has unknown category '${food.category}'. Check spelling (protein, carb, fat).`, true);
+                    updateStatus(`Warning: Food '${food.name}' (ID: ${doc.id}) has an unrecognized category '${food.category}'. Expected 'protein', 'carb', or 'fat'. Check spelling/casing.`, 'warning');
                 }
             });
 
@@ -183,14 +196,16 @@
             populateSelect("carb", foodDB.carb);
             populateSelect("fat", foodDB.fat);
             
-            if (foodDB.protein.length === 0 || foodDB.carb.length === 0 || foodDB.fat.length === 0) {
-                 updateStatus("Warning: One or more food categories (protein, carb, fat) are empty. Check data in Firestore.", true);
+            if (foodDB.protein.length === 0 && foodDB.carb.length === 0 && foodDB.fat.length === 0) {
+                 updateStatus("Critical Error: No usable food items were found after processing the collection. Check Firestore data and categories.", 'error');
+            } else if (foodDB.protein.length === 0 || foodDB.carb.length === 0 || foodDB.fat.length === 0) {
+                 updateStatus(`Warning: Some food categories are empty. Protein: ${foodDB.protein.length}, Carb: ${foodDB.carb.length}, Fat: ${foodDB.fat.length}.`, 'warning');
             } else {
-                updateStatus("Foods loaded and dropdowns populated. Ready to calculate!");
+                updateStatus("Foods loaded, categorized, and dropdowns populated. Ready to calculate!", 'success');
             }
 
         } catch (error) {
-            updateStatus(`Error loading foods from Firestore: ${error.message}`, true);
+            updateStatus(`FATAL ERROR loading foods from Firestore: ${error.name} - ${error.message}. Check Firebase Console -> Firestore -> Rules.`, 'error');
         }
     }
 
@@ -205,7 +220,6 @@
         dataArray.forEach((food, index) => {
             select.add(new Option(food.name, index));
         });
-        // updateStatus(`Dropdown for ${categoryId} populated with ${dataArray.length} items.`); // Too verbose for general status
     }
 
     document.getElementById('calculate-btn').addEventListener('click', () => {
@@ -215,7 +229,7 @@
         const fIndex = document.getElementById("fat").value;
 
         if (pIndex === '' || cIndex === '' || fIndex === '') {
-            updateStatus("Please select a food from all categories before calculating.", true);
+            updateStatus("Please select a food from all categories before calculating.", 'warning');
             return;
         }
 
@@ -224,7 +238,7 @@
         const f = foodDB.fat[fIndex];
 
         if(!p || !c || !f) {
-            updateStatus("Calculation error: Selected food item not found. Please refresh and try again.", true);
+            updateStatus("Calculation error: Selected food item not found. Please refresh and try again.", 'error');
             return;
         }
 
@@ -234,7 +248,7 @@
             <strong>Fat:</strong> ${(f.perBlock * blocks).toFixed(2)} ${f.unit} of ${f.name}
         `;
         document.getElementById("result-box").style.display = "block";
-        updateStatus("Meal calculated!");
+        updateStatus("Meal calculated!", 'success');
     });
 </script>
 
