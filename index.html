@@ -16,8 +16,8 @@
         .secondary-btn { background-color: #007bff; }
         .secondary-btn:hover { background-color: #0069d9; }
         .logout-btn { background-color: #dc3545; }
-        .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
         #app-section, #login-section { display: none; } /* Hidden by default */
+        .result { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -65,20 +65,20 @@
 
 <!-- FIREBASE SDKS (Using modules) -->
 <script type="module">
-    import { initializep } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    // REPLACE THIS WITH YOUR EXACT FIREBASE CONFIG
+    // YOUR EMBEDDED FIREBASE CONFIG
     const firebaseConfig = {
-  apiKey: "AIzaSyDUM4wlGmfE5QJtBiY82NqkUkb-BQ15Ptc",
-  authDomain: "zone-diet-tracker.firebaseapp.com",
-  databaseURL: "https://zone-diet-tracker-default-rtdb.firebaseio.com",
-  projectId: "zone-diet-tracker",
-  storageBucket: "zone-diet-tracker.firebasestorage.app",
-  messagingSenderId: "527744480772",
-  appId: "1:527744480772:web:c29c569b9811b8116a2751"
-};
+      apiKey: "AIzaSyDUM4wlGmfE5QJtBiY82NqkUkb-BQ15Ptc",
+      authDomain: "zone-diet-tracker.firebaseapp.com",
+      databaseURL: "https://zone-diet-tracker-default-rtdb.firebaseio.com",
+      projectId: "zone-diet-tracker",
+      storageBucket: "zone-diet-tracker.firebasestorage.app",
+      messagingSenderId: "527744480772",
+      appId: "1:527744480772:web:c29c569b9811b8116a2751"
+    };
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
@@ -92,16 +92,18 @@
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const authError = document.getElementById('auth-error');
-    const statusMessage = document.createElement('p'); // New element for status
+    
+    // New element for status messages
+    const statusMessage = document.createElement('p'); 
     statusMessage.style.textAlign = 'center';
     statusMessage.style.marginTop = '10px';
     statusMessage.style.color = '#555';
-    document.querySelector('.container').appendChild(statusMessage); // Append it to container
+    document.querySelector('.container').appendChild(statusMessage);
 
     function updateStatus(message, isError = false) {
         statusMessage.textContent = message;
         statusMessage.style.color = isError ? 'red' : '#555';
-        console.log("STATUS:", message); // Also log to console for potential future debugging
+        // console.log("STATUS:", message); // Keep this for when you can access console
     }
 
     // Auth State Listener
@@ -121,7 +123,7 @@
         }
     });
 
-    // Auth functions (same as before)
+    // Auth functions
     document.getElementById('signup-btn').addEventListener('click', () => {
         createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
             .then(() => updateStatus("Signed up and logged in!", false))
@@ -171,9 +173,9 @@
                 // Check if food.category exists and is one of our expected types
                 if(foodDB[food.category]) {
                     foodDB[food.category].push(food);
-                    updateStatus(`Added ${food.name} to ${food.category} category.`);
+                    // updateStatus(`Added ${food.name} to ${food.category} category.`); // Too verbose for general status
                 } else {
-                    updateStatus(`Warning: Food '${food.name}' has unknown category '${food.category}'.`, true);
+                    updateStatus(`Warning: Food '${food.name}' has unknown category '${food.category}'. Check spelling (protein, carb, fat).`, true);
                 }
             });
 
@@ -182,13 +184,13 @@
             populateSelect("fat", foodDB.fat);
             
             if (foodDB.protein.length === 0 || foodDB.carb.length === 0 || foodDB.fat.length === 0) {
-                 updateStatus("Warning: One or more food categories (protein, carb, fat) are empty. Check categories in Firestore.", true);
+                 updateStatus("Warning: One or more food categories (protein, carb, fat) are empty. Check data in Firestore.", true);
             } else {
                 updateStatus("Foods loaded and dropdowns populated. Ready to calculate!");
             }
 
         } catch (error) {
-            updateStatus(`Error loading foods: ${error.message}`, true);
+            updateStatus(`Error loading foods from Firestore: ${error.message}`, true);
         }
     }
 
@@ -203,7 +205,7 @@
         dataArray.forEach((food, index) => {
             select.add(new Option(food.name, index));
         });
-        updateStatus(`Dropdown for ${categoryId} populated with ${dataArray.length} items.`);
+        // updateStatus(`Dropdown for ${categoryId} populated with ${dataArray.length} items.`); // Too verbose for general status
     }
 
     document.getElementById('calculate-btn').addEventListener('click', () => {
@@ -235,5 +237,6 @@
         updateStatus("Meal calculated!");
     });
 </script>
+
 </body>
 </html>
