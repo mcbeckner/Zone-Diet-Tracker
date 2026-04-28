@@ -105,13 +105,15 @@
     </div>
 </div>
 
+<!-- Include Firebase SDKs in the head or before your script -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, query, where, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
 
+    // --- YOUR FIREBASE CONFIG ---
     const firebaseConfig = {
-      apiKey: "AIzaSyDM47EtYj-yzw7ryBh-8xr3KQ7D6Sz4pP0",
+      apiKey: "YOUR_API_KEY",
       authDomain: "zonediettracker.firebaseapp.com",
       projectId: "zonediettracker",
       storageBucket: "zonediettracker.firebasestorage.app",
@@ -120,138 +122,126 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    let userGoal = 11;
+    // --- APP STATE ---
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const meals = [
+        { id: 'brk', name: 'Breakfast', m: 4, d: 2 },
+        { id: 'sn1', name: 'Snack 1', m: 2, d: 1 },
+        { id: 'lun', name: 'Lunch', m: 4, d: 3 },
+        { id: 'sn2', name: 'Snack 2', m: 2, d: 1 },
+        { id: 'din', name: 'Dinner', m: 4, d: 3 }
+    ];
     let foodList = [];
+    let currentUser = null;
 
-    // --- AUTH ---
+    // --- INITIALIZE & AUTH ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('app-section').style.display = 'block';
-            document.getElementById('user-email-display').innerText = user.email;
-            
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                userGoal = userDoc.data().dailyBlockGoal || 11;
-                document.getElementById('my-goal').value = userGoal;
-            }
-
-            const foodsSnap = await getDocs(collection(db, "foods"));
-            foodList = foodsSnap.docs.map(d => d.data());
-            populateDropdowns();
-            refreshSummary();
+            currentUser = user;
+            await loadFoodList();
+            initPlannerUI();
+            loadWeeklyPlan(); // Pull from Firebase
         } else {
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('app-section').style.display = 'none';
+            console.log("No user logged in. Redirecting to login...");
+            // window.location.href = "login.html"; 
         }
     });
 
-    function populateDropdowns() {
-        const pSel = document.getElementById('plan-p');
-        const cSel = document.getElementById('plan-c');
-        const fSel = document.getElementById('plan-f');
-        pSel.innerHTML = cSel.innerHTML = fSel.innerHTML = "";
-
-        foodList.forEach(f => {
-            const opt = new Option(f.name, JSON.stringify(f));
-            if(f.category === 'protein') pSel.add(opt);
-            if(f.category === 'carb') cSel.add(opt);
-            if(f.category === 'fat') fSel.add(opt);
-        });
+    async function loadFoodList() {
+        // Option: Pull food list from Firestore 'foods' collection
+        // For now, using your hardcoded list or a Firestore fetch
+        foodList = [
+            { name: "Chicken Breast", category: "protein", perBlock: 1.0, unit: "oz" },
+            { name: "Egg Whites", category: "protein", perBlock: 2.0, unit: "cups" },
+            { name: "Apple", category: "carb", perBlock: 0.5, unit: "large" },
+            { name: "Oatmeal", category: "carb", perBlock: 0.3, unit: "cups" },
+            { name: "Broccoli", category: "carb", perBlock: 1.25, unit: "cups" },
+            { name: "Almonds", category: "fat", perBlock: 3, unit: "whole" }
+        ];
     }
 
-    // --- MEAL PLANNER LOGIC ---
-    document.getElementById('calculate-plan-btn').addEventListener('click', () => {
-        const p = JSON.parse(document.getElementById('plan-p').value);
-        const c = JSON.parse(document.getElementById('plan-c').value);
-        const f = JSON.parse(document.getElementById('plan-f').value);
-        const myB = parseFloat(document.getElementById('plan-my-blocks').value);
-        const spB = parseFloat(document.getElementById('plan-spouse-blocks').value);
-
-        document.getElementById('my-portion-list').innerHTML = `
-            ${(p.perBlock * myB).toFixed(1)} ${p.unit} ${p.name}, 
-            ${(c.perBlock * myB).toFixed(1)} ${c.unit} ${c.name}, 
-            ${(f.perBlock * myB).toFixed(1)} ${f.unit} ${f.name}
-        `;
-        document.getElementById('spouse-portion-list').innerHTML = `
-            ${(p.perBlock * spB).toFixed(1)} ${p.unit} ${p.name}, 
-            ${(c.perBlock * spB).toFixed(1)} ${c.unit} ${c.name}, 
-            ${(f.perBlock * spB).toFixed(1)} ${f.unit} ${f.name}
-        `;
-        document.getElementById('plan-output').style.display = 'block';
-    });
-
-    document.getElementById('log-plan-btn').addEventListener('click', async () => {
-        const myB = parseFloat(document.getElementById('plan-my-blocks').value);
-        await addDoc(collection(db, "mealLogs"), {
-            userId: auth.currentUser.uid,
-            date: document.getElementById('history-date').value,
-            mealType: document.getElementById('plan-type').value,
-            proteinBlocks: myB, carbBlocks: myB, fatBlocks: myB,
-            timestamp: serverTimestamp()
-        });
-        alert("Logged to your history!");
-        refreshSummary();
-    });
-
-    // --- SUMMARY & DELETE ---
-    async function refreshSummary() {
-        const date = document.getElementById('history-date').value;
-        document.getElementById('summary-date').innerText = date;
-        const q = query(collection(db, "mealLogs"), where("userId", "==", auth.currentUser.uid), where("date", "==", date));
-        const snap = await getDocs(q);
+    // --- FIREBASE SAVE FUNCTION ---
+    window.saveToFirebase = async function() {
+        if (!currentUser) return alert("You must be logged in to save.");
         
-        let pT = 0, cT = 0, fT = 0;
-        let html = "";
-        snap.forEach(d => {
-            const m = d.data();
-            const p = m.proteinBlocks || 0; const c = m.carbBlocks || 0; const f = m.fatBlocks || 0;
-            pT += p; cT += c; fT += f;
-            html += `
-                <div class="meal-entry">
-                    <span><strong>${m.mealType}</strong>: ${p}P, ${c}C, ${f}F</span>
-                    <button class="delete-btn" data-id="${d.id}">Delete</button>
-                </div>`;
-        });
-        document.getElementById('macro-summary').innerHTML = `<span>P: ${pT}/${userGoal}</span> <span>C: ${cT}/${userGoal}</span> <span>F: ${fT}/${userGoal}</span>`;
-        document.getElementById('meals-list').innerHTML = html;
-
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if(confirm("Delete this meal?")) {
-                    await deleteDoc(doc(db, "mealLogs", e.target.dataset.id));
-                    refreshSummary();
-                }
+        const planData = [];
+        days.forEach(day => {
+            const dayData = { day, meals: [] };
+            meals.forEach(m => {
+                const row = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                const mealData = {
+                    id: m.id,
+                    mBlocks: row.querySelector('.in-m').value,
+                    dBlocks: row.querySelector('.in-d').value,
+                    selections: []
+                };
+                row.querySelectorAll('.food-row').forEach(fr => {
+                    mealData.selections.push({
+                        cat: fr.dataset.cat,
+                        s1: fr.querySelector('.s1').value,
+                        s2: fr.querySelector('.s2').value,
+                        split: fr.querySelector('.s2').style.display !== 'none'
+                    });
+                });
+                dayData.meals.push(mealData);
             });
+            planData.push(dayData);
         });
+
+        try {
+            // We save the plan under a document named 'currentWeek' for simplicity
+            // or you could name it by the date (e.g., '2026-04-27')
+            await setDoc(doc(db, "weeklyPlans", "mitch-dee-week"), {
+                userId: currentUser.uid,
+                lastUpdated: new Date(),
+                plan: planData
+            });
+            alert("Plan successfully saved to Firebase!");
+        } catch (e) {
+            console.error("Error saving document: ", e);
+            alert("Error saving plan.");
+        }
     }
 
-    // --- SETTINGS ---
-    document.getElementById('save-settings-btn').addEventListener('click', async () => {
-        const g = parseInt(document.getElementById('my-goal').value);
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { dailyBlockGoal: g });
-        userGoal = g;
-        alert("Settings Saved!");
-        refreshSummary();
-    });
+    // --- FIREBASE LOAD FUNCTION ---
+    async function loadWeeklyPlan() {
+        const docRef = doc(db, "weeklyPlans", "mitch-dee-week");
+        const docSnap = await getDoc(docRef);
 
-    // --- AUTH EVENTS ---
-    document.getElementById('login-btn').addEventListener('click', () => {
-        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-    });
-    document.getElementById('signup-btn').addEventListener('click', () => {
-        createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-    });
-    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-    
-    // Init Date
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('history-date').value = today;
-    document.getElementById('history-date').addEventListener('change', refreshSummary);
+        if (docSnap.exists()) {
+            const data = docSnap.data().plan;
+            data.forEach(d => {
+                d.meals.forEach(m => {
+                    const row = document.querySelector(`#day-${d.day} [data-meal-id="${m.id}"]`);
+                    if(!row) return;
+                    row.querySelector('.in-m').value = m.mBlocks;
+                    row.querySelector('.in-d').value = m.dBlocks;
+                    m.selections.forEach((sel, idx) => {
+                        const fr = row.querySelectorAll('.food-row')[idx];
+                        fr.querySelector('.s1').value = sel.s1;
+                        fr.querySelector('.s2').value = sel.s2;
+                        if(sel.split) {
+                            fr.querySelector('.s2').style.display = 'block';
+                            fr.querySelector('.split-btn').classList.add('active');
+                        }
+                    });
+                });
+            });
+            calculate();
+        } else {
+            console.log("No saved plan found in Firebase. Starting fresh.");
+        }
+    }
 
+    // --- UI LOGIC (Pasted from your working local version) ---
+    function initPlannerUI() {
+        // ... (Insert your existing init() logic here)
+        // Ensure buttons call window.saveToFirebase() instead of saveToLocalStorage()
+    }
 </script>
+
 </body>
 </html>
